@@ -1,5 +1,7 @@
 # SOCLEX - Setup dengan Lovable Cloud (Supabase)
 
+[![GitHub](https://img.shields.io/badge/GitHub-LutfyAlfean-blue)](https://github.com/LutfyAlfean/soclex)
+
 Panduan ini menjelaskan cara setup SOCLEX menggunakan Lovable Cloud yang sudah terintegrasi dengan Supabase.
 
 ## Langkah-langkah Setup

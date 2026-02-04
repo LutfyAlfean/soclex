@@ -1,5 +1,7 @@
 # SOCLEX - Setup dengan MySQL (Local Database)
 
+[![GitHub](https://img.shields.io/badge/GitHub-LutfyAlfean-blue)](https://github.com/LutfyAlfean/soclex)
+
 Panduan ini menjelaskan cara setup SOCLEX menggunakan database MySQL lokal sebagai alternatif dari Lovable Cloud.
 
 ## Prerequisites
