@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import NotificationBell from '@/components/NotificationBell';
 import {
   LayoutDashboard,
   Radar,
   Server,
   Shield,
-  Users,
+  Ticket,
   Settings,
   LogOut,
   Menu,
   X,
-  Bell,
+  Users,
   ChevronDown,
 } from 'lucide-react';
 import logo from '@/assets/logo_soclex.png';
@@ -23,6 +24,7 @@ interface SidebarProps {
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/threats', icon: Radar, label: 'Threat Monitor' },
+  { to: '/tickets', icon: Ticket, label: 'Tickets' },
   { to: '/servers', icon: Server, label: 'Servers' },
   { to: '/agents', icon: Shield, label: 'Agents' },
   { to: '/settings', icon: Settings, label: 'Settings' },
@@ -141,10 +143,7 @@ const Sidebar = ({ children }: SidebarProps) => {
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-            </button>
+            <NotificationBell />
 
             {/* User dropdown */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50">

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Threats from "./pages/Threats";
+import Tickets from "./pages/Tickets";
 import Servers from "./pages/Servers";
 import ServerDetail from "./pages/ServerDetail";
 import Agents from "./pages/Agents";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/threats" element={<Threats />} />
+            <Route path="/tickets" element={<Tickets />} />
             <Route path="/servers" element={<Servers />} />
             <Route path="/servers/:id" element={<ServerDetail />} />
             <Route path="/agents" element={<Agents />} />
