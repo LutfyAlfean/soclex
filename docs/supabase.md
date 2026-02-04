@@ -494,6 +494,183 @@ const channel = supabase
 
 ---
 
+## 🛡️ Security Best Practices
+
+### 1. Environment Variables
+
+```bash
+# ❌ JANGAN PERNAH
+- Commit file .env ke GitHub
+- Share API keys di public channel
+- Hardcode credentials di source code
+
+# ✅ YANG BENAR
+- Gunakan .env.example sebagai template
+- Simpan .env di .gitignore
+- Gunakan secrets manager untuk production
+```
+
+### 2. Row Level Security (RLS)
+
+RLS adalah fitur keamanan penting di Supabase:
+
+```sql
+-- Selalu enable RLS pada tabel sensitif
+ALTER TABLE your_table ENABLE ROW LEVEL SECURITY;
+
+-- Contoh policy untuk user-specific data
+CREATE POLICY "Users can only access own data"
+ON your_table
+FOR ALL
+USING (auth.uid() = user_id);
+```
+
+**Tips RLS:**
+- ✅ Enable RLS di semua tabel
+- ✅ Buat policy spesifik untuk setiap operasi (SELECT, INSERT, UPDATE, DELETE)
+- ✅ Test policy dengan berbagai skenario
+- ❌ Jangan gunakan `USING (true)` untuk data sensitif
+
+### 3. API Keys Management
+
+| Key Type | Penggunaan | Keamanan |
+|----------|------------|----------|
+| `anon` key | Client-side, public | Aman untuk frontend |
+| `service_role` key | Server-side only | **JANGAN PERNAH expose!** |
+
+```bash
+# Untuk production deployment
+# Gunakan environment variables yang berbeda untuk setiap environment:
+VITE_SUPABASE_URL=https://prod-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=prod-anon-key
+```
+
+### 4. Password Requirements
+
+SOCLEX menggunakan password policy yang ketat:
+
+```
+Minimum Requirements:
+├── 12 karakter minimum
+├── 1 huruf besar (A-Z)
+├── 1 huruf kecil (a-z)
+├── 1 angka (0-9)
+└── 1 simbol (!@#$%^&*)
+```
+
+**Default Credentials (WAJIB GANTI!):**
+```
+Username: adminlex
+Password: AdminLex31Terminat@
+
+⚠️ SEGERA ganti password setelah login pertama!
+```
+
+### 5. Network Security
+
+```nginx
+# Contoh konfigurasi Nginx untuk production
+server {
+    listen 443 ssl http2;
+    
+    # SSL Configuration
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # Security Headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Rate Limiting
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+}
+```
+
+### 6. Database Security Checklist
+
+```
+Pre-Production Checklist:
+□ RLS enabled di semua tabel
+□ Policies sudah di-test
+□ service_role key TIDAK ada di frontend
+□ .env file di .gitignore
+□ Default password sudah diganti
+□ SSL/HTTPS enabled
+□ Backup strategy configured
+□ Audit logging enabled
+```
+
+### 7. Isolasi Database
+
+Setiap instalasi SOCLEX **HARUS** memiliki database sendiri:
+
+```
+❌ SALAH:
+   User A ─┐
+           ├──▶ Database Shared ◀── Bahaya!
+   User B ─┘
+
+✅ BENAR:
+   User A ──▶ Database A (Milik sendiri)
+   User B ──▶ Database B (Milik sendiri)
+```
+
+### 8. Monitoring & Audit
+
+```sql
+-- Aktifkan audit logging untuk tabel sensitif
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_name TEXT NOT NULL,
+  action TEXT NOT NULL,
+  old_data JSONB,
+  new_data JSONB,
+  user_id UUID,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Trigger untuk audit
+CREATE OR REPLACE FUNCTION audit_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO audit_logs (table_name, action, old_data, new_data, user_id)
+  VALUES (
+    TG_TABLE_NAME,
+    TG_OP,
+    CASE WHEN TG_OP = 'DELETE' THEN row_to_json(OLD) ELSE NULL END,
+    CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN row_to_json(NEW) ELSE NULL END,
+    auth.uid()
+  );
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### 9. Incident Response
+
+Jika terjadi breach atau kebocoran data:
+
+1. **Immediate Actions:**
+   - Rotate semua API keys di Supabase dashboard
+   - Reset database password
+   - Review access logs
+
+2. **Investigation:**
+   - Check audit logs
+   - Identify affected data
+   - Document timeline
+
+3. **Recovery:**
+   - Restore dari backup jika diperlukan
+   - Update credentials
+   - Notify affected users
+
+---
+
 ## 📞 Support
 
 - Repository: [github.com/LutfyAlfean/soclex](https://github.com/LutfyAlfean/soclex)
