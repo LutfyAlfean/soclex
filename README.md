@@ -43,7 +43,7 @@ SOCLEX is a comprehensive Security Operations Center (SOC) platform designed for
 
 ```bash
 # Clone repository
-git clone https://github.com/soclex/soclex.git
+git clone https://github.com/LutfyAlfean/soclex.git
 cd soclex
 
 # Start with Docker Compose (Port 7129)
