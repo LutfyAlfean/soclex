@@ -14,7 +14,312 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agents: {
+        Row: {
+          created_at: string | null
+          hostname: string
+          id: string
+          ip_address: string
+          last_heartbeat: string | null
+          os: string | null
+          server_id: string | null
+          status: Database["public"]["Enums"]["agent_status"]
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hostname: string
+          id?: string
+          ip_address: string
+          last_heartbeat?: string | null
+          os?: string | null
+          server_id?: string | null
+          status?: Database["public"]["Enums"]["agent_status"]
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hostname?: string
+          id?: string
+          ip_address?: string
+          last_heartbeat?: string | null
+          os?: string | null
+          server_id?: string | null
+          status?: Database["public"]["Enums"]["agent_status"]
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alerts: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          server_id: string | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          source: string | null
+          threat_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          server_id?: string | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          source?: string | null
+          threat_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          server_id?: string | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          source?: string | null
+          threat_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_threat_id_fkey"
+            columns: ["threat_id"]
+            isOneToOne: false
+            referencedRelation: "threats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          email_address: string | null
+          email_enabled: boolean | null
+          id: string
+          telegram_bot_token: string | null
+          telegram_chat_id: string | null
+          telegram_enabled: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_address?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          telegram_bot_token?: string | null
+          telegram_chat_id?: string | null
+          telegram_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email_address?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          telegram_bot_token?: string | null
+          telegram_chat_id?: string | null
+          telegram_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      server_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          log_type: string
+          message: string
+          metadata: Json | null
+          server_id: string
+          severity: Database["public"]["Enums"]["threat_severity"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          log_type: string
+          message: string
+          metadata?: Json | null
+          server_id: string
+          severity?: Database["public"]["Enums"]["threat_severity"] | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          log_type?: string
+          message?: string
+          metadata?: Json | null
+          server_id?: string
+          severity?: Database["public"]["Enums"]["threat_severity"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_logs_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      server_metrics: {
+        Row: {
+          cpu_usage: number
+          disk_usage: number
+          id: string
+          memory_usage: number
+          network_in: number | null
+          network_out: number | null
+          recorded_at: string | null
+          server_id: string
+        }
+        Insert: {
+          cpu_usage: number
+          disk_usage: number
+          id?: string
+          memory_usage: number
+          network_in?: number | null
+          network_out?: number | null
+          recorded_at?: string | null
+          server_id: string
+        }
+        Update: {
+          cpu_usage?: number
+          disk_usage?: number
+          id?: string
+          memory_usage?: number
+          network_in?: number | null
+          network_out?: number | null
+          recorded_at?: string | null
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_metrics_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servers: {
+        Row: {
+          cpu_usage: number | null
+          created_at: string | null
+          disk_usage: number | null
+          id: string
+          ip_address: string
+          last_seen_at: string | null
+          memory_usage: number | null
+          name: string
+          os: string | null
+          server_type: Database["public"]["Enums"]["server_type"]
+          status: Database["public"]["Enums"]["server_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          cpu_usage?: number | null
+          created_at?: string | null
+          disk_usage?: number | null
+          id?: string
+          ip_address: string
+          last_seen_at?: string | null
+          memory_usage?: number | null
+          name: string
+          os?: string | null
+          server_type?: Database["public"]["Enums"]["server_type"]
+          status?: Database["public"]["Enums"]["server_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          cpu_usage?: number | null
+          created_at?: string | null
+          disk_usage?: number | null
+          id?: string
+          ip_address?: string
+          last_seen_at?: string | null
+          memory_usage?: number | null
+          name?: string
+          os?: string | null
+          server_type?: Database["public"]["Enums"]["server_type"]
+          status?: Database["public"]["Enums"]["server_status"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      threats: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string | null
+          description: string | null
+          detected_at: string | null
+          id: string
+          ip_address: string
+          is_resolved: boolean | null
+          latitude: number | null
+          longitude: number | null
+          resolved_at: string | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          threat_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          description?: string | null
+          detected_at?: string | null
+          id?: string
+          ip_address: string
+          is_resolved?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          threat_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          description?: string | null
+          detected_at?: string | null
+          id?: string
+          ip_address?: string
+          is_resolved?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          threat_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +328,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      agent_status: "connected" | "disconnected" | "pending"
+      server_status: "online" | "warning" | "critical" | "offline"
+      server_type: "proxmox" | "vm" | "container" | "physical"
+      threat_severity: "critical" | "high" | "medium" | "low" | "info"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +458,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      agent_status: ["connected", "disconnected", "pending"],
+      server_status: ["online", "warning", "critical", "offline"],
+      server_type: ["proxmox", "vm", "container", "physical"],
+      threat_severity: ["critical", "high", "medium", "low", "info"],
+    },
   },
 } as const

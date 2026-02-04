@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Threats from "./pages/Threats";
 import Servers from "./pages/Servers";
+import ServerDetail from "./pages/ServerDetail";
 import Agents from "./pages/Agents";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/threats" element={<Threats />} />
             <Route path="/servers" element={<Servers />} />
+            <Route path="/servers/:id" element={<ServerDetail />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />

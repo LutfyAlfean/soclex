@@ -1,83 +1,11 @@
-import { useState, useEffect } from 'react';
-import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, Clock, RefreshCw } from 'lucide-react';
+import { useAlerts, Alert as AlertType } from '@/hooks/useAlerts';
+import { format } from 'date-fns';
 
-interface Alert {
-  id: string;
-  timestamp: Date;
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
-  title: string;
-  description: string;
-  source: string;
-  ip?: string;
-}
+type SeverityType = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
-const generateAlerts = (): Alert[] => {
-  const alerts: Alert[] = [
-    {
-      id: '1',
-      timestamp: new Date(Date.now() - 120000),
-      severity: 'critical',
-      title: 'Brute Force Attack Detected',
-      description: 'Multiple failed SSH login attempts detected from external IP',
-      source: 'web-server-01',
-      ip: '45.33.32.156',
-    },
-    {
-      id: '2',
-      timestamp: new Date(Date.now() - 300000),
-      severity: 'high',
-      title: 'Suspicious Port Scan',
-      description: 'Sequential port scanning detected on multiple hosts',
-      source: 'firewall',
-      ip: '185.220.101.33',
-    },
-    {
-      id: '3',
-      timestamp: new Date(Date.now() - 450000),
-      severity: 'high',
-      title: 'Unusual Outbound Traffic',
-      description: 'Large data transfer to unknown external endpoint',
-      source: 'db-server-01',
-      ip: '91.121.87.18',
-    },
-    {
-      id: '4',
-      timestamp: new Date(Date.now() - 600000),
-      severity: 'medium',
-      title: 'Failed Authentication',
-      description: 'Multiple failed authentication attempts for admin account',
-      source: 'mail-server',
-    },
-    {
-      id: '5',
-      timestamp: new Date(Date.now() - 900000),
-      severity: 'medium',
-      title: 'Configuration Change Detected',
-      description: 'Firewall rules modified by unknown user',
-      source: 'firewall',
-    },
-    {
-      id: '6',
-      timestamp: new Date(Date.now() - 1200000),
-      severity: 'low',
-      title: 'Service Restart',
-      description: 'Apache service was restarted automatically',
-      source: 'web-server-01',
-    },
-    {
-      id: '7',
-      timestamp: new Date(Date.now() - 1500000),
-      severity: 'info',
-      title: 'Agent Update Available',
-      description: 'New SOCLEX agent version 1.2.3 is available',
-      source: 'system',
-    },
-  ];
-
-  return alerts;
-};
-
-const getSeverityConfig = (severity: Alert['severity']) => {
+const getSeverityConfig = (severity: SeverityType) => {
   switch (severity) {
     case 'critical':
       return { icon: ShieldAlert, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' };
@@ -92,7 +20,8 @@ const getSeverityConfig = (severity: Alert['severity']) => {
   }
 };
 
-const formatTimeAgo = (date: Date) => {
+const formatTimeAgo = (dateStr: string) => {
+  const date = new Date(dateStr);
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
@@ -102,15 +31,81 @@ const formatTimeAgo = (date: Date) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
+// Mock alerts for when database is empty
+const mockAlerts: AlertType[] = [
+  {
+    id: '1',
+    title: 'Brute Force Attack Detected',
+    message: 'Multiple failed SSH login attempts detected from external IP',
+    severity: 'critical',
+    source: 'web-server-01',
+    is_read: false,
+    server_id: null,
+    threat_id: null,
+    created_at: new Date(Date.now() - 120000).toISOString(),
+  },
+  {
+    id: '2',
+    title: 'Suspicious Port Scan',
+    message: 'Sequential port scanning detected on multiple hosts',
+    severity: 'high',
+    source: 'firewall',
+    is_read: false,
+    server_id: null,
+    threat_id: null,
+    created_at: new Date(Date.now() - 300000).toISOString(),
+  },
+  {
+    id: '3',
+    title: 'Unusual Outbound Traffic',
+    message: 'Large data transfer to unknown external endpoint',
+    severity: 'high',
+    source: 'db-server-01',
+    is_read: true,
+    server_id: null,
+    threat_id: null,
+    created_at: new Date(Date.now() - 450000).toISOString(),
+  },
+  {
+    id: '4',
+    title: 'Failed Authentication',
+    message: 'Multiple failed authentication attempts for admin account',
+    severity: 'medium',
+    source: 'mail-server',
+    is_read: true,
+    server_id: null,
+    threat_id: null,
+    created_at: new Date(Date.now() - 600000).toISOString(),
+  },
+  {
+    id: '5',
+    title: 'Service Restart',
+    message: 'Apache service was restarted automatically',
+    severity: 'low',
+    source: 'web-server-01',
+    is_read: true,
+    server_id: null,
+    threat_id: null,
+    created_at: new Date(Date.now() - 1200000).toISOString(),
+  },
+];
+
 const AlertTimeline = () => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [filter, setFilter] = useState<Alert['severity'] | 'all'>('all');
+  const { data: alertsData, isLoading } = useAlerts();
+  const [filter, setFilter] = useState<SeverityType | 'all'>('all');
 
-  useEffect(() => {
-    setAlerts(generateAlerts());
-  }, []);
-
+  const alerts = alertsData?.length ? alertsData : mockAlerts;
   const filteredAlerts = filter === 'all' ? alerts : alerts.filter(a => a.severity === filter);
+
+  if (isLoading) {
+    return (
+      <div className="cyber-card p-6">
+        <div className="flex items-center justify-center h-48">
+          <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cyber-card p-6">
@@ -134,7 +129,7 @@ const AlertTimeline = () => {
       </div>
 
       <div className="space-y-3 max-h-96 overflow-y-auto">
-        {filteredAlerts.map((alert, index) => {
+        {filteredAlerts.map((alert) => {
           const config = getSeverityConfig(alert.severity);
           const Icon = config.icon;
 
@@ -157,19 +152,14 @@ const AlertTimeline = () => {
                     </span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
                       <Clock className="w-3 h-3" />
-                      {formatTimeAgo(alert.timestamp)}
+                      {formatTimeAgo(alert.created_at)}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
                   <div className="flex items-center gap-4 mt-2 text-xs font-mono">
                     <span className="text-muted-foreground">
-                      Source: <span className="text-foreground">{alert.source}</span>
+                      Source: <span className="text-foreground">{alert.source || 'System'}</span>
                     </span>
-                    {alert.ip && (
-                      <span className="text-muted-foreground">
-                        IP: <span className="text-primary">{alert.ip}</span>
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
