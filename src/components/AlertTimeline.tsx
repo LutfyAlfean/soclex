@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, Clock, RefreshCw } from 'lucide-react';
 import { useAlerts, Alert as AlertType } from '@/hooks/useAlerts';
-import { format } from 'date-fns';
 
 type SeverityType = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
@@ -31,71 +30,13 @@ const formatTimeAgo = (dateStr: string) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-// Mock alerts for when database is empty
-const mockAlerts: AlertType[] = [
-  {
-    id: '1',
-    title: 'Brute Force Attack Detected',
-    message: 'Multiple failed SSH login attempts detected from external IP',
-    severity: 'critical',
-    source: 'web-server-01',
-    is_read: false,
-    server_id: null,
-    threat_id: null,
-    created_at: new Date(Date.now() - 120000).toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Suspicious Port Scan',
-    message: 'Sequential port scanning detected on multiple hosts',
-    severity: 'high',
-    source: 'firewall',
-    is_read: false,
-    server_id: null,
-    threat_id: null,
-    created_at: new Date(Date.now() - 300000).toISOString(),
-  },
-  {
-    id: '3',
-    title: 'Unusual Outbound Traffic',
-    message: 'Large data transfer to unknown external endpoint',
-    severity: 'high',
-    source: 'db-server-01',
-    is_read: true,
-    server_id: null,
-    threat_id: null,
-    created_at: new Date(Date.now() - 450000).toISOString(),
-  },
-  {
-    id: '4',
-    title: 'Failed Authentication',
-    message: 'Multiple failed authentication attempts for admin account',
-    severity: 'medium',
-    source: 'mail-server',
-    is_read: true,
-    server_id: null,
-    threat_id: null,
-    created_at: new Date(Date.now() - 600000).toISOString(),
-  },
-  {
-    id: '5',
-    title: 'Service Restart',
-    message: 'Apache service was restarted automatically',
-    severity: 'low',
-    source: 'web-server-01',
-    is_read: true,
-    server_id: null,
-    threat_id: null,
-    created_at: new Date(Date.now() - 1200000).toISOString(),
-  },
-];
-
 const AlertTimeline = () => {
-  const { data: alertsData, isLoading } = useAlerts();
+  const { data: alerts, isLoading } = useAlerts();
   const [filter, setFilter] = useState<SeverityType | 'all'>('all');
 
-  const alerts = alertsData?.length ? alertsData : mockAlerts;
-  const filteredAlerts = filter === 'all' ? alerts : alerts.filter(a => a.severity === filter);
+  const filteredAlerts = filter === 'all' 
+    ? (alerts || []) 
+    : (alerts || []).filter(a => a.severity === filter);
 
   if (isLoading) {
     return (
@@ -128,50 +69,58 @@ const AlertTimeline = () => {
         </div>
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {filteredAlerts.map((alert) => {
-          const config = getSeverityConfig(alert.severity);
-          const Icon = config.icon;
+      {(!alerts || alerts.length === 0) ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Shield className="w-16 h-16 mx-auto mb-4 opacity-30" />
+          <p className="font-display tracking-wider">NO ALERTS</p>
+          <p className="text-sm mt-2">System is monitoring for threats</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {filteredAlerts.map((alert) => {
+            const config = getSeverityConfig(alert.severity);
+            const Icon = config.icon;
 
-          return (
-            <div
-              key={alert.id}
-              className={`p-4 rounded-lg border ${config.bg} ${config.border} transition-all hover:scale-[1.01] cursor-pointer ${
-                alert.severity === 'critical' ? 'animate-pulse' : ''
-              }`}
-              style={{ animationDuration: '3s' }}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg ${config.bg}`}>
-                  <Icon className={`w-5 h-5 ${config.color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`font-display text-sm tracking-wide ${config.color}`}>
-                      {alert.title}
-                    </span>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
-                      <Clock className="w-3 h-3" />
-                      {formatTimeAgo(alert.created_at)}
-                    </div>
+            return (
+              <div
+                key={alert.id}
+                className={`p-4 rounded-lg border ${config.bg} ${config.border} transition-all hover:scale-[1.01] cursor-pointer ${
+                  alert.severity === 'critical' ? 'animate-pulse' : ''
+                }`}
+                style={{ animationDuration: '3s' }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded-lg ${config.bg}`}>
+                    <Icon className={`w-5 h-5 ${config.color}`} />
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
-                  <div className="flex items-center gap-4 mt-2 text-xs font-mono">
-                    <span className="text-muted-foreground">
-                      Source: <span className="text-foreground">{alert.source || 'System'}</span>
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`font-display text-sm tracking-wide ${config.color}`}>
+                        {alert.title}
+                      </span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                        <Clock className="w-3 h-3" />
+                        {formatTimeAgo(alert.created_at)}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs font-mono">
+                      <span className="text-muted-foreground">
+                        Source: <span className="text-foreground">{alert.source || 'System'}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
 
-      {filteredAlerts.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Shield className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>No alerts matching filter</p>
+          {filteredAlerts.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Shield className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No alerts matching filter</p>
+            </div>
+          )}
         </div>
       )}
     </div>
