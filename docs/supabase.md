@@ -21,20 +21,16 @@
 
 ## 📋 Overview
 
-Panduan ini menjelaskan cara setup SOCLEX dengan Supabase sebagai backend database. Ada 2 opsi:
+Panduan ini menjelaskan cara setup SOCLEX dengan Supabase sebagai backend database.
 
-1. **Lovable Cloud** - Sudah terintegrasi otomatis (recommended untuk development)
-2. **Supabase Manual** - Setup sendiri di supabase.com (untuk production)
-
----
-
-## 🚀 Opsi 1: Lovable Cloud (Otomatis)
-
-Jika menggunakan Lovable, database sudah otomatis tersedia tanpa konfigurasi tambahan.
+> ⚠️ **PENTING**: Setiap instalasi SOCLEX membutuhkan database Supabase **SENDIRI**!
+> 
+> File `.env` **TIDAK** disertakan di repository untuk keamanan.
+> Anda HARUS membuat project Supabase dan mengkonfigurasi `.env` sendiri.
 
 ---
 
-## 🔧 Opsi 2: Setup Supabase Manual
+## 🔧 Setup Supabase (WAJIB)
 
 ### Step 1: Buat Akun Supabase
 

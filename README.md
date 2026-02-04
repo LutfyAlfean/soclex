@@ -148,18 +148,34 @@ soclex/
 
 ## 🔧 Configuration
 
-### Environment Variables
+### ⚠️ PENTING: Setup Database Sendiri
 
-Create `.env` file:
+Setiap instalasi SOCLEX membutuhkan database Supabase sendiri. File `.env` **TIDAK** disertakan di repository untuk keamanan.
 
-```env
-# Supabase Configuration (Lovable Cloud)
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+### Langkah Setup:
 
-# Application
-VITE_APP_NAME=SOCLEX
-```
+1. **Buat Project Supabase**
+   - Daftar di [supabase.com](https://supabase.com)
+   - Buat project baru
+   - Ikuti panduan lengkap di [docs/supabase.md](docs/supabase.md)
+
+2. **Konfigurasi Environment**
+   ```bash
+   # Copy template
+   cp .env.example .env
+   
+   # Edit dengan API keys Anda
+   nano .env
+   ```
+
+3. **Isi dengan nilai Anda:**
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+   VITE_SUPABASE_PROJECT_ID=your-project-id
+   ```
+
+> ⚠️ **JANGAN** commit file `.env` ke GitHub!
 
 ### Docker Configuration
 

@@ -75,13 +75,24 @@ cd soclex
 
 ### Step 3: Configure Environment
 
+⚠️ **PENTING**: Anda HARUS setup database Supabase sendiri!
+
 ```bash
 # Copy environment template
 cp .env.example .env
 
-# Edit configuration
+# Edit dengan API keys Supabase Anda
 nano .env
 ```
+
+**Isi dengan nilai dari project Supabase Anda:**
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+VITE_SUPABASE_PROJECT_ID=your-project-id
+```
+
+> 📖 Panduan lengkap setup Supabase: [docs/supabase.md](docs/supabase.md)
 
 ### Step 4: Start SOCLEX
 
