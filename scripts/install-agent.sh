@@ -4,7 +4,7 @@
 #
 #          FILE:  install-agent.sh
 #
-#         USAGE:  curl -sSL https://soclex.io/install-agent | sudo bash -s -- \
+#         USAGE:  curl -sSL https://raw.githubusercontent.com/LutfyAlfean/soclex/main/scripts/install-agent.sh | sudo bash -s -- \
 #                   --server=IP --port=PORT --key=API_KEY
 #
 #   DESCRIPTION:  SOCLEX Agent - Installation Script with Auto IP Detection
@@ -16,6 +16,8 @@
 #                 --help      Show help
 #
 #       VERSION:  1.0.0
+#        AUTHOR:  LutfyAlfean
+#        GITHUB:  https://github.com/LutfyAlfean/soclex
 #
 #===============================================================================
 
@@ -84,6 +86,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --help)
             echo "SOCLEX Agent Installer v${AGENT_VERSION}"
+            echo "GitHub: https://github.com/LutfyAlfean/soclex"
             echo ""
             echo "Usage: $0 --server=IP --key=API_KEY [--port=PORT] [--name=NAME]"
             echo ""
@@ -112,6 +115,7 @@ echo "  ███████║╚██████╔╝╚██████
 echo "  ╚══════╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝"
 echo -e "${NC}"
 echo -e "${CYAN}  Agent Installer v${AGENT_VERSION}${NC}"
+echo -e "${CYAN}  GitHub: github.com/LutfyAlfean/soclex${NC}"
 echo ""
 
 # Validate required arguments
@@ -175,6 +179,7 @@ cat > $AGENT_DIR/soclex-agent << 'AGENT_EOF'
 
 # SOCLEX Agent - Monitoring Script
 # Sends heartbeats and metrics to SOCLEX server
+# GitHub: https://github.com/LutfyAlfean/soclex
 
 CONFIG_FILE="/opt/soclex-agent/config.yml"
 LOG_FILE="/var/log/soclex-agent.log"
@@ -223,6 +228,7 @@ case "$1" in
         ;;
     --version)
         echo "SOCLEX Agent v1.0.0"
+        echo "GitHub: https://github.com/LutfyAlfean/soclex"
         ;;
     --validate-config)
         if [ -f "$CONFIG_FILE" ]; then
@@ -278,6 +284,7 @@ case "$1" in
         ;;
     *)
         echo "SOCLEX Agent v1.0.0"
+        echo "GitHub: https://github.com/LutfyAlfean/soclex"
         echo ""
         echo "Usage: soclex-agent [OPTIONS]"
         echo ""
@@ -303,6 +310,7 @@ cat > $AGENT_DIR/config.yml << CONFIG_EOF
 # SOCLEX Agent Configuration
 # Generated: $(date)
 # Auto-detected IP: ${AGENT_IP}
+# GitHub: https://github.com/LutfyAlfean/soclex
 
 agent:
   id: "${AGENT_ID}"
@@ -361,7 +369,7 @@ cat > /etc/systemd/system/soclex-agent.service << SERVICE_EOF
 [Unit]
 Description=SOCLEX Security Agent
 After=network.target
-Documentation=https://docs.soclex.io/agent
+Documentation=https://github.com/LutfyAlfean/soclex
 
 [Service]
 Type=simple
@@ -408,6 +416,8 @@ if systemctl is-active --quiet soclex-agent; then
     echo -e "  Logs:    ${GREEN}journalctl -u soclex-agent -f${NC}"
     echo -e "  Restart: ${GREEN}systemctl restart soclex-agent${NC}"
     echo -e "  Test:    ${GREEN}/opt/soclex-agent/soclex-agent --test-connection${NC}"
+    echo ""
+    echo -e "  ${CYAN}Repository:${NC} https://github.com/LutfyAlfean/soclex"
     echo ""
     echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
 else

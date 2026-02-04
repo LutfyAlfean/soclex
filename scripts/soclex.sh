@@ -20,6 +20,8 @@
 #                 Root or sudo access
 #
 #       VERSION:  1.0.0
+#        AUTHOR:  LutfyAlfean
+#        GITHUB:  https://github.com/LutfyAlfean/soclex
 #
 #===============================================================================
 
@@ -40,6 +42,7 @@ SOCLEX_USER="soclex"
 SOCLEX_LOG="/var/log/soclex"
 SOCLEX_PORT="7129"
 AGENT_PORT="9200"
+GITHUB_REPO="https://github.com/LutfyAlfean/soclex.git"
 
 # Banner
 print_banner() {
@@ -52,6 +55,7 @@ print_banner() {
     echo "  ╚══════╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝"
     echo -e "${NC}"
     echo -e "${CYAN}  Security Operations Center - v${SOCLEX_VERSION}${NC}"
+    echo -e "${CYAN}  GitHub: github.com/LutfyAlfean/soclex${NC}"
     echo ""
 }
 
@@ -95,6 +99,23 @@ install_docker() {
     log_success "Docker installed"
 }
 
+# Stop conflicting services
+stop_conflicting_services() {
+    log_info "Stopping conflicting services..."
+    
+    # Stop Apache if running on port 80
+    if systemctl is-active --quiet apache2 2>/dev/null; then
+        systemctl stop apache2
+        systemctl disable apache2
+        log_info "Stopped apache2"
+    fi
+    
+    # Check if port 80 is in use and we need it
+    if netstat -tlnp 2>/dev/null | grep -q ":80 "; then
+        log_warning "Port 80 is in use, but SOCLEX uses port ${SOCLEX_PORT}"
+    fi
+}
+
 # Docker deployment
 deploy_docker() {
     print_banner
@@ -103,21 +124,44 @@ deploy_docker() {
     log_info "Deploying SOCLEX with Docker..."
     
     install_docker
+    stop_conflicting_services
+    
+    # Create directory first
+    mkdir -p $SOCLEX_DIR
     
     # Clone or update repository
-    if [ -d "$SOCLEX_DIR" ]; then
+    if [ -d "$SOCLEX_DIR/.git" ]; then
+        log_info "Updating existing repository..."
         cd $SOCLEX_DIR
-        git pull origin main 2>/dev/null || true
+        git pull origin main 2>/dev/null || log_warning "Git pull failed, using existing files"
     else
-        git clone https://github.com/soclex/soclex.git $SOCLEX_DIR 2>/dev/null || {
-            log_error "Failed to clone repository"
+        log_info "Cloning repository from GitHub..."
+        rm -rf $SOCLEX_DIR/* 2>/dev/null || true
+        
+        if git clone $GITHUB_REPO $SOCLEX_DIR 2>&1; then
+            log_success "Repository cloned successfully"
+        else
+            log_error "Failed to clone repository from $GITHUB_REPO"
+            log_info "Please check:"
+            log_info "  1. Repository exists at $GITHUB_REPO"
+            log_info "  2. Repository is public or you have access"
+            log_info ""
+            log_info "Alternative: Clone manually then run:"
+            log_info "  cd $SOCLEX_DIR && docker compose up -d --build"
             exit 1
-        }
+        fi
     fi
     
     cd $SOCLEX_DIR
     
+    # Verify docker-compose.yml exists
+    if [ ! -f "docker-compose.yml" ]; then
+        log_error "docker-compose.yml not found in $SOCLEX_DIR"
+        exit 1
+    fi
+    
     # Build and start
+    log_info "Building Docker containers..."
     docker compose up -d --build
     
     # Wait for container
@@ -140,16 +184,18 @@ install_manual() {
     
     log_info "Starting SOCLEX installation..."
     
+    stop_conflicting_services
+    
     # Install dependencies
     log_info "Installing dependencies..."
     case $OS in
         ubuntu|debian)
             apt-get update -qq
-            apt-get install -y -qq curl wget git nginx ufw fail2ban
+            apt-get install -y -qq curl wget git nginx ufw fail2ban net-tools
             ;;
         centos|rhel|rocky|almalinux)
             dnf update -y -q
-            dnf install -y -q curl wget git nginx firewalld fail2ban
+            dnf install -y -q curl wget git nginx firewalld fail2ban net-tools
             ;;
         *)
             log_error "Unsupported OS: $OS"
@@ -171,22 +217,54 @@ install_manual() {
     
     # Clone repository
     if [ -d "$SOCLEX_DIR/.git" ]; then
+        log_info "Updating existing repository..."
         cd $SOCLEX_DIR
-        git pull origin main 2>/dev/null || true
+        git pull origin main 2>/dev/null || log_warning "Git pull failed, using existing files"
     else
-        git clone https://github.com/soclex/soclex.git $SOCLEX_DIR 2>/dev/null || {
-            log_warning "Git clone failed, manual setup required"
-        }
+        log_info "Cloning repository from GitHub..."
+        rm -rf $SOCLEX_DIR/* 2>/dev/null || true
+        
+        if git clone $GITHUB_REPO $SOCLEX_DIR 2>&1; then
+            log_success "Repository cloned successfully"
+        else
+            log_error "Failed to clone repository from $GITHUB_REPO"
+            log_info ""
+            log_info "Please clone manually:"
+            log_info "  git clone $GITHUB_REPO $SOCLEX_DIR"
+            log_info ""
+            log_info "Then run installation again:"
+            log_info "  cd $SOCLEX_DIR && ./scripts/soclex.sh --install"
+            exit 1
+        fi
     fi
     
     cd $SOCLEX_DIR
     
+    # Verify package.json exists
+    if [ ! -f "package.json" ]; then
+        log_error "package.json not found in $SOCLEX_DIR"
+        log_info "Please ensure the repository was cloned correctly"
+        exit 1
+    fi
+    
     # Install and build
     log_info "Installing npm packages..."
-    npm install --production --silent 2>/dev/null || npm install
+    npm install 2>&1 || {
+        log_error "npm install failed"
+        exit 1
+    }
     
     log_info "Building application..."
-    npm run build
+    npm run build 2>&1 || {
+        log_error "npm build failed"
+        exit 1
+    }
+    
+    # Verify build output
+    if [ ! -d "dist" ]; then
+        log_error "Build failed - dist folder not created"
+        exit 1
+    fi
     
     # Configure Nginx
     configure_nginx_manual
@@ -203,6 +281,10 @@ install_manual() {
 
 configure_nginx_manual() {
     log_info "Configuring Nginx..."
+    
+    # Create sites-available directory if not exists
+    mkdir -p /etc/nginx/sites-available
+    mkdir -p /etc/nginx/sites-enabled
     
     cat > /etc/nginx/sites-available/soclex << EOF
 server {
@@ -232,7 +314,12 @@ EOF
 
     rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
     ln -sf /etc/nginx/sites-available/soclex /etc/nginx/sites-enabled/
-    nginx -t
+    
+    # Test nginx config
+    nginx -t 2>&1 || {
+        log_error "Nginx configuration test failed"
+        exit 1
+    }
 }
 
 configure_firewall() {
@@ -414,6 +501,8 @@ show_help() {
     echo "  sudo ./soclex --docker    # Docker installation"
     echo "  sudo ./soclex --install   # Manual installation"
     echo "  ./soclex --status         # Check status"
+    echo ""
+    echo "Repository: $GITHUB_REPO"
 }
 
 # Main

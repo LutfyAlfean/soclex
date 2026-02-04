@@ -14,6 +14,8 @@
 
 **Deploy Security Monitoring on Any Server**
 
+[![GitHub](https://img.shields.io/badge/GitHub-LutfyAlfean-blue)](https://github.com/LutfyAlfean/soclex)
+
 </div>
 
 ---
@@ -45,7 +47,7 @@ SOCLEX Agent is a lightweight security monitoring component that collects metric
 The installation script **automatically detects** your server's IP address and configures everything for you.
 
 ```bash
-curl -sSL https://your-soclex-server.com/install-agent.sh | sudo bash -s -- \
+curl -sSL https://raw.githubusercontent.com/LutfyAlfean/soclex/main/scripts/install-agent.sh | sudo bash -s -- \
   --server=SOCLEX_SERVER_IP \
   --port=9200 \
   --key=YOUR_API_KEY
@@ -141,6 +143,8 @@ sudo nano /opt/soclex-agent/config.yml
 
 ```yaml
 # SOCLEX Agent Configuration
+# GitHub: https://github.com/LutfyAlfean/soclex
+
 agent:
   id: "auto"
   name: "your-server-name"
@@ -193,7 +197,7 @@ sudo nano /etc/systemd/system/soclex-agent.service
 [Unit]
 Description=SOCLEX Security Agent
 After=network.target
-Documentation=https://docs.soclex.io/agent
+Documentation=https://github.com/LutfyAlfean/soclex
 
 [Service]
 Type=simple
@@ -364,6 +368,9 @@ sudo systemctl daemon-reload
 
 ## 📞 Support
 
+- Repository: [github.com/LutfyAlfean/soclex](https://github.com/LutfyAlfean/soclex)
+- Issues: [GitHub Issues](https://github.com/LutfyAlfean/soclex/issues)
+
 If you encounter issues:
 
 1. Check agent logs: `sudo journalctl -u soclex-agent -f`
@@ -375,5 +382,7 @@ If you encounter issues:
 <div align="center">
 
 **SOCLEX Agent** - Your Eyes Everywhere
+
+[![GitHub](https://img.shields.io/badge/Author-LutfyAlfean-red)](https://github.com/LutfyAlfean)
 
 </div>

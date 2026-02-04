@@ -13,6 +13,8 @@
 
 **Production Deployment Guide**
 
+[![GitHub](https://img.shields.io/badge/GitHub-LutfyAlfean-blue)](https://github.com/LutfyAlfean/soclex)
+
 </div>
 
 ---
@@ -67,7 +69,7 @@ docker compose version
 
 ```bash
 cd /opt
-sudo git clone https://github.com/soclex/soclex.git
+sudo git clone https://github.com/LutfyAlfean/soclex.git
 cd soclex
 ```
 
@@ -134,7 +136,7 @@ sudo mkdir -p /opt/soclex
 cd /opt/soclex
 
 # Clone repository
-sudo git clone https://github.com/soclex/soclex.git .
+sudo git clone https://github.com/LutfyAlfean/soclex.git .
 
 # Install dependencies
 npm install
@@ -190,6 +192,22 @@ sudo systemctl enable nginx
 
 ---
 
+## 🔧 One-Line Installation
+
+### Docker Installation (Recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/LutfyAlfean/soclex/main/scripts/soclex.sh -o soclex.sh && chmod +x soclex.sh && sudo ./soclex.sh --docker
+```
+
+### Manual Installation
+
+```bash
+curl -sSL https://raw.githubusercontent.com/LutfyAlfean/soclex/main/scripts/soclex.sh -o soclex.sh && chmod +x soclex.sh && sudo ./soclex.sh --install
+```
+
+---
+
 ## 🔒 Security Hardening
 
 ### Firewall Configuration
@@ -241,6 +259,19 @@ Start Fail2ban:
 ```bash
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
+```
+
+---
+
+## 🤖 Agent Installation
+
+Install SOCLEX Agent on monitored servers:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/LutfyAlfean/soclex/main/scripts/install-agent.sh | sudo bash -s -- \
+  --server=YOUR_SOCLEX_SERVER_IP \
+  --port=9200 \
+  --key=YOUR_API_KEY
 ```
 
 ---
@@ -318,14 +349,16 @@ sudo systemctl restart nginx
 
 ## 📞 Support
 
+- Repository: [github.com/LutfyAlfean/soclex](https://github.com/LutfyAlfean/soclex)
 - Documentation: [docs/](docs/)
-- Issues: [GitHub Issues](https://github.com/soclex/soclex/issues)
-- Email: support@soclex.io
+- Issues: [GitHub Issues](https://github.com/LutfyAlfean/soclex/issues)
 
 ---
 
 <div align="center">
 
 **SOCLEX** - Deploy with Confidence
+
+[![GitHub](https://img.shields.io/badge/Author-LutfyAlfean-red)](https://github.com/LutfyAlfean)
 
 </div>
