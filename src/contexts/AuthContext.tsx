@@ -27,8 +27,8 @@ const hashPassword = async (password: string): Promise<string> => {
 };
 
 // Default credentials - stored as hash
-// Original password: ahsYte$@612#231Hyad
-const DEFAULT_PASSWORD_HASH = '7d6f8b9c1e2a3f4d5b6c7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b';
+// Original password: AdminLex31Terminat@
+const DEFAULT_PASSWORD_HASH = 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456';
 const DEFAULT_USERNAME = 'adminlex';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const inputHash = await hashPassword(password);
     
     // Check credentials
-    if (username === storedUsername && (inputHash === storedHash || password === 'ahsYte$@612#231Hyad')) {
+    if (username === storedUsername && (inputHash === storedHash || password === 'AdminLex31Terminat@')) {
       const userData = { username, role: 'admin' };
       setUser(userData);
       localStorage.setItem('soclex_user', JSON.stringify(userData));
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const currentHash = await hashPassword(currentPassword);
     
     // Verify current password
-    if (currentHash === storedHash || currentPassword === 'ahsYte$@612#231Hyad') {
+    if (currentHash === storedHash || currentPassword === 'AdminLex31Terminat@') {
       // Store new password hash
       const newHash = await hashPassword(newPassword);
       localStorage.setItem('soclex_password_hash', newHash);

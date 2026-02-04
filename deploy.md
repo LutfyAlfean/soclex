@@ -102,7 +102,7 @@ docker compose logs -f
 http://YOUR_SERVER_IP:7129
 
 Username: adminlex
-Password: ahsYte$@612#231Hyad
+Password: AdminLex31Terminat@
 ```
 
 ---
