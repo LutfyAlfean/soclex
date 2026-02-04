@@ -1,22 +1,396 @@
-# SOCLEX - Setup dengan Lovable Cloud (Supabase)
+# SOCLEX - Setup Supabase (Step-by-Step Guide)
+
+<div align="center">
+
+```
+███████╗ ██████╗  ██████╗██╗     ███████╗██╗  ██╗
+██╔════╝██╔═══██╗██╔════╝██║     ██╔════╝╚██╗██╔╝
+███████╗██║   ██║██║     ██║     █████╗   ╚███╔╝ 
+╚════██║██║   ██║██║     ██║     ██╔══╝   ██╔██╗ 
+███████║╚██████╔╝╚██████╗███████╗███████╗██╔╝ ██╗
+╚══════╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝
+```
+
+**Panduan Setup Supabase untuk SOCLEX**
 
 [![GitHub](https://img.shields.io/badge/GitHub-LutfyAlfean-blue)](https://github.com/LutfyAlfean/soclex)
 
-Panduan ini menjelaskan cara setup SOCLEX menggunakan Lovable Cloud yang sudah terintegrasi dengan Supabase.
+</div>
 
-## Langkah-langkah Setup
+---
 
-### 1. Aktifkan Lovable Cloud
+## 📋 Overview
 
-Lovable Cloud sudah otomatis aktif pada project ini. Database, authentication, dan storage sudah tersedia tanpa perlu konfigurasi tambahan.
+Panduan ini menjelaskan cara setup SOCLEX dengan Supabase sebagai backend database. Ada 2 opsi:
 
-### 2. Struktur Database
+1. **Lovable Cloud** - Sudah terintegrasi otomatis (recommended untuk development)
+2. **Supabase Manual** - Setup sendiri di supabase.com (untuk production)
 
-Database SOCLEX terdiri dari tabel-tabel berikut:
+---
 
-#### Tabel `servers`
-Menyimpan informasi server yang dimonitor.
+## 🚀 Opsi 1: Lovable Cloud (Otomatis)
 
+Jika menggunakan Lovable, database sudah otomatis tersedia tanpa konfigurasi tambahan.
+
+---
+
+## 🔧 Opsi 2: Setup Supabase Manual
+
+### Step 1: Buat Akun Supabase
+
+1. Buka [supabase.com](https://supabase.com)
+2. Klik **Start your project**
+3. Login dengan GitHub atau Email
+4. Verifikasi email jika diperlukan
+
+### Step 2: Buat Project Baru
+
+1. Klik **New Project**
+2. Pilih Organization (atau buat baru)
+3. Isi form:
+   - **Project name**: `soclex`
+   - **Database Password**: Buat password yang kuat (simpan!)
+   - **Region**: Pilih yang terdekat (contoh: Singapore)
+4. Klik **Create new project**
+5. Tunggu 2-3 menit sampai project siap
+
+### Step 3: Ambil API Keys
+
+1. Setelah project siap, klik **Project Settings** (icon gear ⚙️)
+2. Pilih **API** di sidebar
+3. Catat informasi berikut:
+   - **Project URL**: `https://xxxxx.supabase.co`
+   - **anon public key**: Key untuk akses publik
+   - **service_role key**: Key untuk akses admin (JANGAN share!)
+
+### Step 4: Buat Tabel Database
+
+1. Klik **SQL Editor** di sidebar
+2. Klik **New Query**
+3. Copy-paste SQL berikut:
+
+```sql
+-- ============================================
+-- SOCLEX Database Schema
+-- ============================================
+
+-- Create custom types
+CREATE TYPE server_status AS ENUM ('online', 'warning', 'critical', 'offline');
+CREATE TYPE server_type AS ENUM ('proxmox', 'vm', 'container', 'physical');
+CREATE TYPE agent_status AS ENUM ('connected', 'disconnected', 'pending');
+CREATE TYPE threat_severity AS ENUM ('critical', 'high', 'medium', 'low', 'info');
+
+-- ============================================
+-- Table: servers
+-- ============================================
+CREATE TABLE servers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  ip_address TEXT NOT NULL,
+  server_type server_type DEFAULT 'vm',
+  status server_status DEFAULT 'online',
+  cpu_usage NUMERIC DEFAULT 0,
+  memory_usage NUMERIC DEFAULT 0,
+  disk_usage NUMERIC DEFAULT 0,
+  os TEXT,
+  last_seen_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: agents
+-- ============================================
+CREATE TABLE agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hostname TEXT NOT NULL,
+  ip_address TEXT NOT NULL,
+  os TEXT,
+  version TEXT,
+  status agent_status DEFAULT 'pending',
+  last_heartbeat TIMESTAMPTZ,
+  server_id UUID REFERENCES servers(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: threats
+-- ============================================
+CREATE TABLE threats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ip_address TEXT NOT NULL,
+  threat_type TEXT NOT NULL,
+  severity threat_severity DEFAULT 'medium',
+  country TEXT,
+  city TEXT,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  description TEXT,
+  is_resolved BOOLEAN DEFAULT false,
+  detected_at TIMESTAMPTZ DEFAULT now(),
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: server_logs
+-- ============================================
+CREATE TABLE server_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  log_type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  severity threat_severity DEFAULT 'info',
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: server_metrics
+-- ============================================
+CREATE TABLE server_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  cpu_usage NUMERIC NOT NULL,
+  memory_usage NUMERIC NOT NULL,
+  disk_usage NUMERIC NOT NULL,
+  network_in BIGINT DEFAULT 0,
+  network_out BIGINT DEFAULT 0,
+  recorded_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: alerts
+-- ============================================
+CREATE TABLE alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  severity threat_severity DEFAULT 'info',
+  source TEXT,
+  is_read BOOLEAN DEFAULT false,
+  server_id UUID REFERENCES servers(id) ON DELETE SET NULL,
+  threat_id UUID REFERENCES threats(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: tickets
+-- ============================================
+CREATE TABLE tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_number TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  priority TEXT DEFAULT 'medium',
+  status TEXT DEFAULT 'open',
+  assigned_to TEXT,
+  created_by TEXT DEFAULT 'admin',
+  threat_id UUID REFERENCES threats(id) ON DELETE SET NULL,
+  resolution_notes TEXT,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Table: notification_settings
+-- ============================================
+CREATE TABLE notification_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  telegram_bot_token TEXT,
+  telegram_chat_id TEXT,
+  telegram_enabled BOOLEAN DEFAULT false,
+  email_enabled BOOLEAN DEFAULT false,
+  email_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- Functions
+-- ============================================
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION generate_ticket_number()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.ticket_number := 'TKT-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- Triggers
+-- ============================================
+CREATE TRIGGER update_servers_updated_at
+  BEFORE UPDATE ON servers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_agents_updated_at
+  BEFORE UPDATE ON agents
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_threats_updated_at
+  BEFORE UPDATE ON threats
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_tickets_updated_at
+  BEFORE UPDATE ON tickets
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_notification_settings_updated_at
+  BEFORE UPDATE ON notification_settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER generate_ticket_number_trigger
+  BEFORE INSERT ON tickets
+  FOR EACH ROW EXECUTE FUNCTION generate_ticket_number();
+```
+
+4. Klik **Run** untuk menjalankan query
+
+### Step 5: Setup Row Level Security (RLS)
+
+1. Di **SQL Editor**, jalankan query berikut:
+
+```sql
+-- ============================================
+-- Enable RLS on all tables
+-- ============================================
+ALTER TABLE servers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE threats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE server_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE server_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_settings ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- RLS Policies (Public Access for SOC Dashboard)
+-- ============================================
+
+-- Servers
+CREATE POLICY "Allow public read servers" ON servers FOR SELECT USING (true);
+CREATE POLICY "Allow public insert servers" ON servers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update servers" ON servers FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete servers" ON servers FOR DELETE USING (true);
+
+-- Agents
+CREATE POLICY "Allow public read agents" ON agents FOR SELECT USING (true);
+CREATE POLICY "Allow public insert agents" ON agents FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update agents" ON agents FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete agents" ON agents FOR DELETE USING (true);
+
+-- Threats
+CREATE POLICY "Allow public read threats" ON threats FOR SELECT USING (true);
+CREATE POLICY "Allow public insert threats" ON threats FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update threats" ON threats FOR UPDATE USING (true);
+
+-- Server Logs
+CREATE POLICY "Allow public read server_logs" ON server_logs FOR SELECT USING (true);
+CREATE POLICY "Allow public insert server_logs" ON server_logs FOR INSERT WITH CHECK (true);
+
+-- Server Metrics
+CREATE POLICY "Allow public read server_metrics" ON server_metrics FOR SELECT USING (true);
+CREATE POLICY "Allow public insert server_metrics" ON server_metrics FOR INSERT WITH CHECK (true);
+
+-- Alerts
+CREATE POLICY "Allow public read alerts" ON alerts FOR SELECT USING (true);
+CREATE POLICY "Allow public insert alerts" ON alerts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update alerts" ON alerts FOR UPDATE USING (true);
+
+-- Tickets
+CREATE POLICY "Allow public read tickets" ON tickets FOR SELECT USING (true);
+CREATE POLICY "Allow public insert tickets" ON tickets FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update tickets" ON tickets FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete tickets" ON tickets FOR DELETE USING (true);
+
+-- Notification Settings
+CREATE POLICY "Allow public read notification_settings" ON notification_settings FOR SELECT USING (true);
+CREATE POLICY "Allow public write notification_settings" ON notification_settings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update notification_settings" ON notification_settings FOR UPDATE USING (true);
+```
+
+2. Klik **Run**
+
+### Step 6: Enable Realtime (Opsional)
+
+Untuk fitur real-time updates:
+
+```sql
+-- Enable realtime for tables
+ALTER PUBLICATION supabase_realtime ADD TABLE alerts;
+ALTER PUBLICATION supabase_realtime ADD TABLE threats;
+ALTER PUBLICATION supabase_realtime ADD TABLE servers;
+ALTER PUBLICATION supabase_realtime ADD TABLE agents;
+```
+
+### Step 7: Insert Sample Data (Opsional)
+
+```sql
+-- Sample servers
+INSERT INTO servers (name, ip_address, server_type, status, cpu_usage, memory_usage, disk_usage, os) VALUES
+('proxmox-main', '192.168.1.10', 'proxmox', 'online', 45, 62, 38, 'Proxmox VE 8.0'),
+('web-server-01', '192.168.1.20', 'vm', 'online', 23, 45, 55, 'Ubuntu 22.04'),
+('db-server-01', '192.168.1.21', 'vm', 'warning', 78, 85, 72, 'Debian 12');
+
+-- Sample notification settings
+INSERT INTO notification_settings (telegram_enabled) VALUES (false);
+```
+
+### Step 8: Konfigurasi Environment
+
+1. Buat file `.env` di root project (JANGAN commit ke GitHub!):
+
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
+VITE_SUPABASE_PROJECT_ID=your-project-id
+```
+
+2. Buat file `.env.example` untuk referensi:
+
+```env
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+VITE_SUPABASE_PROJECT_ID=your-project-id
+```
+
+---
+
+## 🔐 Keamanan
+
+### Jangan Commit .env ke GitHub!
+
+Pastikan `.env` ada di `.gitignore`:
+
+```gitignore
+# Environment files
+.env
+.env.local
+.env.*.local
+*.local
+```
+
+### Hanya Share .env.example
+
+File `.env.example` berisi template tanpa nilai sensitif, aman untuk di-commit.
+
+---
+
+## 📊 Struktur Database
+
+### Tabel `servers`
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
@@ -27,14 +401,17 @@ Menyimpan informasi server yang dimonitor.
 | cpu_usage | DECIMAL | Penggunaan CPU (%) |
 | memory_usage | DECIMAL | Penggunaan Memory (%) |
 | disk_usage | DECIMAL | Penggunaan Disk (%) |
-| os | TEXT | Sistem operasi |
-| last_seen_at | TIMESTAMP | Terakhir aktif |
-| created_at | TIMESTAMP | Dibuat pada |
-| updated_at | TIMESTAMP | Diupdate pada |
 
-#### Tabel `threats`
-Menyimpan informasi ancaman yang terdeteksi.
+### Tabel `agents`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| hostname | TEXT | Nama host |
+| ip_address | TEXT | Alamat IP |
+| status | ENUM | connected, disconnected, pending |
+| last_heartbeat | TIMESTAMP | Heartbeat terakhir |
 
+### Tabel `threats`
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
@@ -42,234 +419,96 @@ Menyimpan informasi ancaman yang terdeteksi.
 | threat_type | TEXT | Jenis ancaman |
 | severity | ENUM | critical, high, medium, low, info |
 | country | TEXT | Negara asal |
-| city | TEXT | Kota asal |
-| latitude | DECIMAL | Koordinat lintang |
-| longitude | DECIMAL | Koordinat bujur |
-| description | TEXT | Deskripsi ancaman |
-| is_resolved | BOOLEAN | Status resolved |
-| detected_at | TIMESTAMP | Waktu deteksi |
-| resolved_at | TIMESTAMP | Waktu resolved |
 
-#### Tabel `agents`
-Menyimpan informasi agent yang terpasang.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| hostname | TEXT | Nama host |
-| ip_address | TEXT | Alamat IP |
-| os | TEXT | Sistem operasi |
-| version | TEXT | Versi agent |
-| status | ENUM | connected, disconnected, pending |
-| last_heartbeat | TIMESTAMP | Heartbeat terakhir |
-| server_id | UUID | Referensi ke server |
-
-#### Tabel `server_logs`
-Menyimpan log dari setiap server.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| server_id | UUID | Referensi ke server |
-| log_type | TEXT | Jenis log |
-| message | TEXT | Pesan log |
-| severity | ENUM | Tingkat severity |
-| metadata | JSONB | Data tambahan |
-| created_at | TIMESTAMP | Waktu log |
-
-#### Tabel `server_metrics`
-Menyimpan metrik performa server.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| server_id | UUID | Referensi ke server |
-| cpu_usage | DECIMAL | Penggunaan CPU |
-| memory_usage | DECIMAL | Penggunaan Memory |
-| disk_usage | DECIMAL | Penggunaan Disk |
-| network_in | BIGINT | Traffic masuk (bytes) |
-| network_out | BIGINT | Traffic keluar (bytes) |
-| recorded_at | TIMESTAMP | Waktu pencatatan |
-
-#### Tabel `alerts`
-Menyimpan notifikasi alert.
-
+### Tabel `alerts`
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
 | title | TEXT | Judul alert |
 | message | TEXT | Pesan alert |
 | severity | ENUM | Tingkat severity |
-| source | TEXT | Sumber alert |
 | is_read | BOOLEAN | Status sudah dibaca |
-| server_id | UUID | Referensi ke server |
-| threat_id | UUID | Referensi ke threat |
-| created_at | TIMESTAMP | Waktu alert |
 
-#### Tabel `notification_settings`
-Menyimpan pengaturan notifikasi.
+---
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| telegram_bot_token | TEXT | Token bot Telegram |
-| telegram_chat_id | TEXT | Chat ID Telegram |
-| telegram_enabled | BOOLEAN | Status Telegram aktif |
-| email_enabled | BOOLEAN | Status email aktif |
-| email_address | TEXT | Alamat email |
+## 💻 Menggunakan Supabase di Code
 
-### 3. Mengakses Database
-
-#### Dari Frontend (React)
+### Import Client
 
 ```typescript
 import { supabase } from '@/integrations/supabase/client';
+```
 
-// Mengambil data servers
+### Contoh Query
+
+```typescript
+// Get all servers
 const { data: servers, error } = await supabase
   .from('servers')
   .select('*')
   .order('name');
 
-// Menambah threat baru
+// Add new threat
 const { error } = await supabase
   .from('threats')
   .insert({
     ip_address: '192.168.1.100',
     threat_type: 'Brute Force',
     severity: 'high',
-    description: 'SSH brute force attack detected',
   });
 
-// Update status server
+// Update server status
 const { error } = await supabase
   .from('servers')
-  .update({ status: 'critical', cpu_usage: 95 })
+  .update({ status: 'critical' })
   .eq('id', serverId);
 ```
 
-#### Dari Agent (cURL)
-
-```bash
-# Mengirim heartbeat dari agent
-curl -X POST "https://ksttsjpwdpkantgoznkj.supabase.co/rest/v1/agents" \
-  -H "apikey: YOUR_ANON_KEY" \
-  -H "Authorization: Bearer YOUR_ANON_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "hostname": "web-server-01",
-    "ip_address": "192.168.1.20",
-    "os": "Ubuntu 22.04",
-    "version": "1.0.0",
-    "status": "connected"
-  }'
-
-# Mengirim metrik server
-curl -X POST "https://ksttsjpwdpkantgoznkj.supabase.co/rest/v1/server_metrics" \
-  -H "apikey: YOUR_ANON_KEY" \
-  -H "Authorization: Bearer YOUR_ANON_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "server_id": "UUID_SERVER",
-    "cpu_usage": 45.5,
-    "memory_usage": 62.3,
-    "disk_usage": 38.0,
-    "network_in": 1048576,
-    "network_out": 524288
-  }'
-```
-
-### 4. Realtime Subscriptions
-
-SOCLEX menggunakan Supabase Realtime untuk update real-time:
+### Realtime Subscription
 
 ```typescript
-import { supabase } from '@/integrations/supabase/client';
-
-// Subscribe ke alerts baru
 const channel = supabase
   .channel('alerts-realtime')
   .on(
     'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'alerts',
-    },
+    { event: 'INSERT', schema: 'public', table: 'alerts' },
     (payload) => {
       console.log('New alert:', payload.new);
-      // Handle new alert
-    }
-  )
-  .subscribe();
-
-// Subscribe ke threats baru
-const threatChannel = supabase
-  .channel('threats-realtime')
-  .on(
-    'postgres_changes',
-    {
-      event: '*', // INSERT, UPDATE, DELETE
-      schema: 'public',
-      table: 'threats',
-    },
-    (payload) => {
-      console.log('Threat change:', payload);
     }
   )
   .subscribe();
 ```
 
-### 5. Edge Functions
+---
 
-SOCLEX menggunakan Edge Functions untuk:
-
-- **send-telegram**: Mengirim notifikasi ke Telegram
-- **test-telegram**: Testing koneksi Telegram
-
-```typescript
-// Memanggil edge function dari frontend
-const { data, error } = await supabase.functions.invoke('send-telegram', {
-  body: {
-    title: 'Security Alert',
-    message: 'Brute force attack detected from 192.168.1.100',
-    severity: 'critical',
-  },
-});
-```
-
-### 6. Environment Variables
-
-Project ini sudah dikonfigurasi dengan environment variables:
-
-- `VITE_SUPABASE_URL` - URL Supabase project
-- `VITE_SUPABASE_PUBLISHABLE_KEY` - Anon key untuk akses publik
-
-### 7. Security (Row Level Security)
-
-Semua tabel sudah dilindungi dengan RLS policies. Untuk production, pastikan untuk:
-
-1. Review dan update RLS policies sesuai kebutuhan
-2. Gunakan authentication untuk akses sensitif
-3. Jangan expose service role key
-
-## Troubleshooting
+## 🛠️ Troubleshooting
 
 ### Error "relation does not exist"
-Pastikan migration sudah dijalankan. Buka Cloud tab dan jalankan migration.
+- Pastikan sudah menjalankan SQL schema di Step 4
 
 ### Error "permission denied"
-Check RLS policies pada tabel yang bersangkutan.
+- Pastikan RLS policies sudah dibuat di Step 5
 
 ### Realtime tidak bekerja
-Pastikan tabel sudah di-enable untuk realtime dengan:
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.table_name;
-```
+- Pastikan sudah enable realtime di Step 6
 
-## Next Steps
+### Data tidak muncul
+- Check console browser untuk error
+- Pastikan API keys benar di `.env`
 
-1. Setup Telegram notifications di Settings
-2. Deploy SOCLEX agent ke server yang akan dimonitor
-3. Configure alert rules sesuai kebutuhan
-4. Setup backup database secara berkala
+---
+
+## 📞 Support
+
+- Repository: [github.com/LutfyAlfean/soclex](https://github.com/LutfyAlfean/soclex)
+- Issues: [GitHub Issues](https://github.com/LutfyAlfean/soclex/issues)
+
+---
+
+<div align="center">
+
+**SOCLEX** - Powered by Supabase
+
+[![GitHub](https://img.shields.io/badge/Author-LutfyAlfean-red)](https://github.com/LutfyAlfean)
+
+</div>
