@@ -283,6 +283,27 @@
     left: 100%;
   }
 
+  /* Secondary cyber button */
+  .cyber-btn-secondary {
+    @apply relative overflow-hidden px-6 py-3 font-semibold uppercase tracking-wider;
+    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(220 15% 12%));
+    border: 1px solid hsl(var(--border));
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.3s ease;
+  }
+
+  .cyber-btn-secondary:hover {
+    box-shadow: 0 0 20px hsla(220, 20%, 50%, 0.3);
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  .cyber-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
   /* Corner decorations */
   .cyber-corner {
     position: relative;

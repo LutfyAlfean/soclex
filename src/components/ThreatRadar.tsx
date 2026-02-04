@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useThreats, Threat } from '@/hooks/useThreats';
 
 interface ThreatPoint {
   id: string;
@@ -10,46 +11,42 @@ interface ThreatPoint {
   country: string;
 }
 
-const generateRandomThreats = (): ThreatPoint[] => {
-  const threats: ThreatPoint[] = [];
-  const types = ['Brute Force', 'Port Scan', 'DDoS', 'Malware', 'SQL Injection', 'XSS Attack', 'Unauthorized Access'];
-  const countries = ['CN', 'RU', 'US', 'BR', 'IN', 'KR', 'DE', 'Unknown'];
-  const severities: ThreatPoint['severity'][] = ['critical', 'high', 'medium', 'low'];
-
-  const count = Math.floor(Math.random() * 8) + 4;
-
-  for (let i = 0; i < count; i++) {
-    const angle = Math.random() * 2 * Math.PI;
-    const radius = Math.random() * 0.8 + 0.1;
-    threats.push({
-      id: `threat-${i}`,
-      ip: `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+const mapThreatsToPoints = (threats: Threat[]): ThreatPoint[] => {
+  return threats.slice(0, 15).map((threat, index) => {
+    const angle = (index / 15) * 2 * Math.PI;
+    const severityRadius: Record<string, number> = {
+      critical: 0.2 + Math.random() * 0.2,
+      high: 0.3 + Math.random() * 0.2,
+      medium: 0.5 + Math.random() * 0.2,
+      low: 0.7 + Math.random() * 0.1,
+      info: 0.8,
+    };
+    const radius = severityRadius[threat.severity] || 0.5;
+    
+    return {
+      id: threat.id,
+      ip: threat.ip_address,
       x: 50 + Math.cos(angle) * radius * 45,
       y: 50 + Math.sin(angle) * radius * 45,
-      severity: severities[Math.floor(Math.random() * severities.length)],
-      type: types[Math.floor(Math.random() * types.length)],
-      country: countries[Math.floor(Math.random() * countries.length)],
-    });
-  }
-
-  return threats;
+      severity: threat.severity as ThreatPoint['severity'],
+      type: threat.threat_type,
+      country: threat.country || 'Unknown',
+    };
+  });
 };
 
 const ThreatRadar = () => {
+  const { data: threatsData } = useThreats();
   const [threats, setThreats] = useState<ThreatPoint[]>([]);
   const [selectedThreat, setSelectedThreat] = useState<ThreatPoint | null>(null);
   const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
-    setThreats(generateRandomThreats());
-    
-    // Update threats periodically
-    const interval = setInterval(() => {
-      setThreats(generateRandomThreats());
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, []);
+    if (threatsData) {
+      const unresolvedThreats = threatsData.filter(t => !t.is_resolved);
+      setThreats(mapThreatsToPoints(unresolvedThreats));
+    }
+  }, [threatsData]);
 
   useEffect(() => {
     const rotationInterval = setInterval(() => {

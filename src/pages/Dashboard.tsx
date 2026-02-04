@@ -5,9 +5,15 @@ import ThreatRadar from '@/components/ThreatRadar';
 import ServerStatus from '@/components/ServerStatus';
 import AlertTimeline from '@/components/AlertTimeline';
 import DashboardStats from '@/components/DashboardStats';
+import NotificationBell from '@/components/NotificationBell';
+import ExportButton from '@/components/ExportButton';
+import { useRealtimeAlerts } from '@/hooks/useAlerts';
 
 const Dashboard = () => {
   const { isAuthenticated } = useAuth();
+  
+  // Subscribe to real-time alerts
+  useRealtimeAlerts();
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -26,9 +32,13 @@ const Dashboard = () => {
               Real-time threat monitoring and infrastructure status
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-secondary/50 rounded-lg">
-            <span className="status-online" />
-            <span className="text-sm font-mono text-cyber-green">SYSTEM ACTIVE</span>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <ExportButton />
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-secondary/50 rounded-lg">
+              <span className="status-online" />
+              <span className="text-sm font-mono text-cyber-green">SYSTEM ACTIVE</span>
+            </div>
           </div>
         </div>
 

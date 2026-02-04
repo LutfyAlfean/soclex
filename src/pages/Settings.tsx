@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Save, Bell, Shield, Database, Mail, Key } from 'lucide-react';
+import { Save, Bell, Shield, Database, Key, Send } from 'lucide-react';
+import TelegramSettings from '@/components/TelegramSettings';
 
 const Settings = () => {
   const { isAuthenticated, user } = useAuth();
   const [settings, setSettings] = useState({
     emailNotifications: true,
-    slackIntegration: false,
     autoBlockThreats: true,
     retentionDays: 30,
     apiEndpoint: 'https://api.soclex.local',
@@ -59,11 +59,20 @@ const Settings = () => {
           </div>
         </div>
 
+        {/* Telegram Settings */}
+        <div className="cyber-card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Send className="w-5 h-5 text-primary" />
+            <h3 className="font-display text-lg tracking-wider">Telegram Notifications</h3>
+          </div>
+          <TelegramSettings />
+        </div>
+
         {/* Notification Settings */}
         <div className="cyber-card p-6">
           <div className="flex items-center gap-2 mb-6">
             <Bell className="w-5 h-5 text-primary" />
-            <h3 className="font-display text-lg tracking-wider">Notifications</h3>
+            <h3 className="font-display text-lg tracking-wider">Email Notifications</h3>
           </div>
           
           <div className="space-y-4">
@@ -80,23 +89,6 @@ const Settings = () => {
               >
                 <div className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
                   settings.emailNotifications ? 'translate-x-6' : 'translate-x-0.5'
-                }`} />
-              </button>
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <div className="font-medium">Slack Integration</div>
-                <div className="text-sm text-muted-foreground">Send alerts to Slack channel</div>
-              </div>
-              <button
-                onClick={() => setSettings(s => ({ ...s, slackIntegration: !s.slackIntegration }))}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  settings.slackIntegration ? 'bg-primary' : 'bg-secondary'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
-                  settings.slackIntegration ? 'translate-x-6' : 'translate-x-0.5'
                 }`} />
               </button>
             </label>
