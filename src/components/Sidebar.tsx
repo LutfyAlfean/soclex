@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   Users,
-  ChevronDown,
 } from 'lucide-react';
 import logo from '@/assets/logo_soclex.png';
 
@@ -145,13 +144,12 @@ const Sidebar = ({ children }: SidebarProps) => {
             {/* Notifications */}
             <NotificationBell />
 
-            {/* User dropdown */}
+            {/* User info */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50">
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                 <Users className="w-4 h-4 text-primary" />
               </div>
               <span className="font-medium text-sm hidden sm:block">{user?.username}</span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </div>
           </div>
         </header>
