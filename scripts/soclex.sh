@@ -247,6 +247,30 @@ install_manual() {
         exit 1
     fi
     
+    # Check for .env file
+    if [ ! -f ".env" ]; then
+        log_warning "File .env tidak ditemukan!"
+        log_info ""
+        log_info "  Anda HARUS setup database Supabase sendiri:"
+        log_info "  1. Buat project di https://supabase.com"
+        log_info "  2. Ikuti panduan di docs/supabase.md"
+        log_info "  3. Copy .env.example ke .env dan isi dengan API keys Anda"
+        log_info ""
+        log_info "  Contoh:"
+        log_info "    cp .env.example .env"
+        log_info "    nano .env"
+        log_info ""
+        
+        # Create .env from example if exists
+        if [ -f ".env.example" ]; then
+            log_info "Membuat .env dari template..."
+            cp .env.example .env
+            log_warning "PENTING: Edit file .env dengan API keys Supabase Anda!"
+            log_info "  nano $SOCLEX_DIR/.env"
+            log_info ""
+        fi
+    fi
+    
     # Install and build
     log_info "Installing npm packages..."
     npm install 2>&1 || {
@@ -450,7 +474,13 @@ print_summary_docker() {
     echo -e "  Username: ${GREEN}adminlex${NC}"
     echo -e "  Password: ${GREEN}AdminLex31Terminat@${NC}"
     echo ""
-    echo -e "  ${RED}⚠️  Change the default password immediately!${NC}"
+    echo -e "  ${RED}⚠️  PENTING: Setup Database!${NC}"
+    echo -e "  Jika belum setup Supabase, edit file .env:"
+    echo -e "    ${GREEN}nano ${SOCLEX_DIR}/.env${NC}"
+    echo ""
+    echo -e "  Panduan lengkap: ${CYAN}docs/supabase.md${NC}"
+    echo ""
+    echo -e "  ${RED}⚠️  Ganti password default segera!${NC}"
     echo ""
     echo -e "  ${CYAN}Commands:${NC}"
     echo -e "  Status:   ${GREEN}docker compose -f ${SOCLEX_DIR}/docker-compose.yml ps${NC}"
@@ -474,7 +504,13 @@ print_summary_manual() {
     echo -e "  Username: ${GREEN}adminlex${NC}"
     echo -e "  Password: ${GREEN}AdminLex31Terminat@${NC}"
     echo ""
-    echo -e "  ${RED}⚠️  Change the default password immediately!${NC}"
+    echo -e "  ${RED}⚠️  PENTING: Setup Database!${NC}"
+    echo -e "  Jika belum setup Supabase, edit file .env:"
+    echo -e "    ${GREEN}nano ${SOCLEX_DIR}/.env${NC}"
+    echo ""
+    echo -e "  Panduan lengkap: ${CYAN}docs/supabase.md${NC}"
+    echo ""
+    echo -e "  ${RED}⚠️  Ganti password default segera!${NC}"
     echo ""
     echo -e "  ${CYAN}Commands:${NC}"
     echo -e "  Status:   ${GREEN}./soclex --status${NC}"
