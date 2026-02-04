@@ -78,18 +78,22 @@ export const useRealtimeAlerts = () => {
           schema: 'public',
           table: 'alerts',
         },
-        (payload) => {
+        async (payload) => {
           const newAlert = payload.new as Alert;
           setLatestAlert(newAlert);
           
-          // Show toast notification
-          toast({
-            title: newAlert.title,
-            description: newAlert.message,
-            variant: newAlert.severity === 'critical' || newAlert.severity === 'high' 
-              ? 'destructive' 
-              : 'default',
-          });
+          // Send Telegram notification
+          try {
+            await supabase.functions.invoke('send-telegram', {
+              body: {
+                title: newAlert.title,
+                message: newAlert.message,
+                severity: newAlert.severity,
+              },
+            });
+          } catch (error) {
+            console.error('Failed to send Telegram notification:', error);
+          }
           
           // Invalidate queries to refresh data
           queryClient.invalidateQueries({ queryKey: ['alerts'] });
