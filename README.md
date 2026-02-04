@@ -80,7 +80,7 @@ sudo ./soclex --install
 
 ```
 Username: adminlex
-Password: ahsYte$@612#231Hyad
+Password: AdminLex31Terminat@
 ```
 
 ⚠️ **IMPORTANT:** Change the default password immediately after first login!
