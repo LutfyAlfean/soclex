@@ -37,8 +37,9 @@ const Agents = () => {
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
-  const installCommand = `curl -sSL https://your-server.com/install-agent.sh | sudo bash`;
-  const handleCopy = () => { navigator.clipboard.writeText(installCommand); setCopied(true); toast({ title: 'Copied!' }); setTimeout(() => setCopied(false), 2000); };
+  const serverIp = window.location.hostname || 'YOUR_SOCLEX_SERVER_IP';
+  const installCommand = `curl -sSL https://${serverIp}/install-agent.sh | sudo bash -s -- --server=${serverIp} --port=9200 --key=YOUR_API_KEY`;
+  const handleCopy = () => { navigator.clipboard.writeText(installCommand); setCopied(true); toast({ title: 'Copied!', description: 'Install command copied to clipboard' }); setTimeout(() => setCopied(false), 2000); };
   const handleAdd = () => { setEditingId(null); setFormData(emptyAgent); setIsDialogOpen(true); };
   const handleEdit = (agent: NonNullable<typeof agents>[0]) => { setEditingId(agent.id); setFormData({ hostname: agent.hostname, ip_address: agent.ip_address, os: agent.os || '', version: agent.version || '1.0.0', status: agent.status as AgentInput['status'], server_id: agent.server_id }); setIsDialogOpen(true); };
   const handleDelete = (id: string) => { if (confirm('Delete this agent?')) deleteAgent.mutate(id); };
@@ -84,10 +85,61 @@ const Agents = () => {
           <div className="grid grid-cols-2 gap-4"><div><label className="text-sm text-muted-foreground uppercase">OS</label><Input value={formData.os} onChange={(e) => setFormData({ ...formData, os: e.target.value })} /></div>
             <div><label className="text-sm text-muted-foreground uppercase">Status</label><select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as AgentInput['status'] })} className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md"><option value="pending">Pending</option><option value="connected">Connected</option><option value="disconnected">Disconnected</option></select></div></div></div>
         <DialogFooter><button onClick={() => setIsDialogOpen(false)} className="cyber-btn-secondary">Cancel</button><button onClick={handleSave} className="cyber-btn">Save</button></DialogFooter></DialogContent></Dialog>
-      <Dialog open={isInstallOpen} onOpenChange={setIsInstallOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle className="font-display">SOCLEX Agent Installation</DialogTitle></DialogHeader>
-        <div className="space-y-4 py-4"><p className="text-muted-foreground">Run this command on your server:</p>
-          <div className="flex gap-2"><code className="flex-1 p-3 bg-background rounded border text-xs overflow-x-auto">{installCommand}</code><button onClick={handleCopy} className="p-2 rounded bg-secondary">{copied ? <Check className="w-4 h-4 text-cyber-green" /> : <Copy className="w-4 h-4" />}</button></div>
-          <div className="p-4 bg-cyber-green/10 border border-cyber-green/30 rounded-lg"><h4 className="font-display text-sm text-cyber-green mb-2">When agent shows "Connected":</h4><ul className="text-sm text-muted-foreground list-disc list-inside"><li>Heartbeats every 30 seconds</li><li>Metrics collection active</li><li>Threat detection enabled</li></ul></div></div>
+      <Dialog open={isInstallOpen} onOpenChange={setIsInstallOpen}><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle className="font-display text-lg">SOCLEX Agent Installation Guide</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+          <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
+            <h4 className="font-display text-sm text-primary mb-2">⚠️ Prerequisites</h4>
+            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+              <li>Root or sudo access on target server</li>
+              <li>Network connectivity to SOCLEX server</li>
+              <li>Port 9200 open for agent communication</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 className="font-display text-sm mb-2">Step 1: Run Installation Command</h4>
+            <p className="text-sm text-muted-foreground mb-2">Execute this on your target server (IP will be auto-detected):</p>
+            <div className="flex gap-2"><code className="flex-1 p-3 bg-background rounded border text-xs overflow-x-auto break-all">{installCommand}</code><button onClick={handleCopy} className="p-2 rounded bg-secondary shrink-0">{copied ? <Check className="w-4 h-4 text-cyber-green" /> : <Copy className="w-4 h-4" />}</button></div>
+          </div>
+          
+          <div>
+            <h4 className="font-display text-sm mb-2">Step 2: Register in Dashboard</h4>
+            <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+              <li>Go to <strong>Servers</strong> → Add the server first</li>
+              <li>Go to <strong>Agents</strong> → Click "Add Agent"</li>
+              <li>Enter hostname and IP from installation output</li>
+              <li>Set status to "Pending"</li>
+            </ol>
+          </div>
+          
+          <div>
+            <h4 className="font-display text-sm mb-2">Step 3: Verify & Activate</h4>
+            <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+              <li>Check agent logs: <code className="bg-background px-1 rounded">journalctl -u soclex-agent -f</code></li>
+              <li>Verify heartbeat is being sent</li>
+              <li>Change agent status to "Connected"</li>
+            </ol>
+          </div>
+          
+          <div className="p-4 bg-cyber-green/10 border border-cyber-green/30 rounded-lg">
+            <h4 className="font-display text-sm text-cyber-green mb-2">✓ Agent "Connected" Status Means:</h4>
+            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+              <li>Heartbeats sent every 30 seconds</li>
+              <li>System metrics (CPU, RAM, Disk) collected</li>
+              <li>Security log monitoring active</li>
+              <li>Failed login detection enabled</li>
+            </ul>
+          </div>
+          
+          <div className="p-4 bg-secondary/50 rounded-lg">
+            <h4 className="font-display text-sm mb-2">Useful Commands</h4>
+            <div className="text-xs font-mono space-y-1 text-muted-foreground">
+              <div>Status: <code className="bg-background px-1 rounded">systemctl status soclex-agent</code></div>
+              <div>Logs: <code className="bg-background px-1 rounded">journalctl -u soclex-agent -f</code></div>
+              <div>Test: <code className="bg-background px-1 rounded">/opt/soclex-agent/soclex-agent --test-connection</code></div>
+            </div>
+          </div>
+        </div>
         <DialogFooter><button onClick={() => setIsInstallOpen(false)} className="cyber-btn">Close</button></DialogFooter></DialogContent></Dialog>
     </Sidebar>
   );

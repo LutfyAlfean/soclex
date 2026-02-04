@@ -1,20 +1,6 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-
-// Extend jsPDF type for autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: {
-      head: string[][];
-      body: string[][];
-      startY?: number;
-      theme?: string;
-      headStyles?: Record<string, unknown>;
-      styles?: Record<string, unknown>;
-    }) => jsPDF;
-  }
-}
 
 interface ThreatData {
   ip_address: string;
@@ -31,9 +17,9 @@ interface ServerData {
   ip_address: string;
   server_type: string;
   status: string;
-  cpu_usage: number;
-  memory_usage: number;
-  disk_usage: number;
+  cpu_usage: number | null;
+  memory_usage: number | null;
+  disk_usage: number | null;
   os: string | null;
 }
 
@@ -102,7 +88,7 @@ export const exportSecurityReport = (
   doc.text('THREAT ANALYSIS', 14, yPos);
   
   if (threats.length > 0) {
-    doc.autoTable({
+    autoTable(doc, {
       head: [['IP Address', 'Type', 'Severity', 'Country', 'Status', 'Detected']],
       body: threats.slice(0, 20).map(t => [
         t.ip_address,
@@ -117,6 +103,11 @@ export const exportSecurityReport = (
       headStyles: { fillColor: [220, 38, 38] },
       styles: { fontSize: 9 },
     });
+  } else {
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('No threats detected.', 14, yPos);
   }
   
   // New page for servers
@@ -128,27 +119,32 @@ export const exportSecurityReport = (
   doc.text('SERVER STATUS', 14, yPos);
   
   if (servers.length > 0) {
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Server Name', 'IP Address', 'Type', 'Status', 'CPU %', 'Memory %', 'Disk %']],
       body: servers.map(s => [
         s.name,
         s.ip_address,
         s.server_type,
         s.status.toUpperCase(),
-        `${s.cpu_usage}%`,
-        `${s.memory_usage}%`,
-        `${s.disk_usage}%`,
+        `${s.cpu_usage ?? 0}%`,
+        `${s.memory_usage ?? 0}%`,
+        `${s.disk_usage ?? 0}%`,
       ]),
       startY: yPos + 5,
       theme: 'grid',
       headStyles: { fillColor: [220, 38, 38] },
       styles: { fontSize: 9 },
     });
+  } else {
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('No servers registered.', 14, yPos);
   }
   
   // Alerts Section
-  yPos = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || yPos;
-  yPos += 15;
+  const lastTableY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY;
+  yPos = lastTableY ? lastTableY + 15 : yPos + 15;
   
   if (yPos > 250) {
     doc.addPage();
@@ -160,7 +156,7 @@ export const exportSecurityReport = (
   doc.text('RECENT ALERTS', 14, yPos);
   
   if (alerts.length > 0) {
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Title', 'Message', 'Severity', 'Source', 'Time']],
       body: alerts.slice(0, 20).map(a => [
         a.title,
@@ -174,6 +170,11 @@ export const exportSecurityReport = (
       headStyles: { fillColor: [220, 38, 38] },
       styles: { fontSize: 9 },
     });
+  } else {
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('No recent alerts.', 14, yPos);
   }
   
   // Footer on all pages
