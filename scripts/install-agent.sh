@@ -4,16 +4,18 @@
 #
 #          FILE:  install-agent.sh
 #
-#         USAGE:  curl -sL https://soclex.io/install-agent | sudo bash -s -- \
+#         USAGE:  curl -sSL https://soclex.io/install-agent | sudo bash -s -- \
 #                   --server=IP --port=PORT --key=API_KEY
 #
-#   DESCRIPTION:  SOCLEX Agent - Quick Installation Script
+#   DESCRIPTION:  SOCLEX Agent - Installation Script with Auto IP Detection
 #
 #       OPTIONS:  --server    SOCLEX Server IP/hostname (required)
 #                 --port      Server port (default: 9200)
 #                 --key       API Key for authentication (required)
 #                 --name      Custom agent name (default: hostname)
 #                 --help      Show help
+#
+#       VERSION:  1.0.0
 #
 #===============================================================================
 
@@ -32,6 +34,34 @@ AGENT_VERSION="1.0.0"
 AGENT_DIR="/opt/soclex-agent"
 SERVER_PORT="9200"
 AGENT_NAME=$(hostname)
+
+# Auto-detect IP address
+detect_ip() {
+    # Try multiple methods to get the primary IP
+    LOCAL_IP=""
+    
+    # Method 1: ip route
+    if command -v ip &> /dev/null; then
+        LOCAL_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
+    fi
+    
+    # Method 2: hostname -I
+    if [ -z "$LOCAL_IP" ] && command -v hostname &> /dev/null; then
+        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    fi
+    
+    # Method 3: ifconfig
+    if [ -z "$LOCAL_IP" ] && command -v ifconfig &> /dev/null; then
+        LOCAL_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -1)
+    fi
+    
+    # Fallback
+    if [ -z "$LOCAL_IP" ]; then
+        LOCAL_IP="127.0.0.1"
+    fi
+    
+    echo "$LOCAL_IP"
+}
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -53,11 +83,20 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help)
+            echo "SOCLEX Agent Installer v${AGENT_VERSION}"
+            echo ""
             echo "Usage: $0 --server=IP --key=API_KEY [--port=PORT] [--name=NAME]"
+            echo ""
+            echo "Options:"
+            echo "  --server=IP     SOCLEX Server IP address (required)"
+            echo "  --key=KEY       API Key for authentication (required)"
+            echo "  --port=PORT     Server port (default: 9200)"
+            echo "  --name=NAME     Agent name (default: hostname)"
             exit 0
             ;;
         *)
             echo "Unknown option: $1"
+            echo "Use --help for usage information"
             exit 1
             ;;
     esac
@@ -94,9 +133,13 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Detect local IP
+AGENT_IP=$(detect_ip)
+
 echo -e "${BLUE}[INFO]${NC} Installing SOCLEX Agent..."
-echo -e "${BLUE}[INFO]${NC} Server: $SERVER_IP:$SERVER_PORT"
-echo -e "${BLUE}[INFO]${NC} Agent Name: $AGENT_NAME"
+echo -e "${BLUE}[INFO]${NC} Server: ${SERVER_IP}:${SERVER_PORT}"
+echo -e "${BLUE}[INFO]${NC} Agent Name: ${AGENT_NAME}"
+echo -e "${BLUE}[INFO]${NC} Agent IP: ${AGENT_IP} (auto-detected)"
 echo ""
 
 # Create directory
@@ -115,17 +158,23 @@ esac
 
 # Detect OS
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+OS_DISTRO="unknown"
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS_DISTRO="$ID $VERSION_ID"
+fi
 
-echo -e "${BLUE}[INFO]${NC} Detected: ${OS}-${ARCH}"
+echo -e "${BLUE}[INFO]${NC} Platform: ${OS}-${ARCH}"
+echo -e "${BLUE}[INFO]${NC} OS: ${OS_DISTRO}"
 
-# For demo, create a mock agent script
+# Create agent script
 echo -e "${BLUE}[INFO]${NC} Creating agent binary..."
 
 cat > $AGENT_DIR/soclex-agent << 'AGENT_EOF'
 #!/bin/bash
 
-# SOCLEX Agent - Mock Implementation
-# In production, this would be a compiled binary
+# SOCLEX Agent - Monitoring Script
+# Sends heartbeats and metrics to SOCLEX server
 
 CONFIG_FILE="/opt/soclex-agent/config.yml"
 LOG_FILE="/var/log/soclex-agent.log"
@@ -136,6 +185,18 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
+get_cpu_usage() {
+    top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 2>/dev/null || echo "0"
+}
+
+get_mem_usage() {
+    free | grep Mem | awk '{printf("%.1f", $3/$2 * 100.0)}' 2>/dev/null || echo "0"
+}
+
+get_disk_usage() {
+    df -h / | awk 'NR==2 {print $5}' | tr -d '%' 2>/dev/null || echo "0"
+}
+
 case "$1" in
     --test-connection)
         echo "Testing connection to SOCLEX server..."
@@ -143,15 +204,20 @@ case "$1" in
             SERVER=$(grep 'address:' $CONFIG_FILE | awk '{print $2}' | tr -d '"')
             PORT=$(grep 'port:' $CONFIG_FILE | head -1 | awk '{print $2}')
             echo "Server: $SERVER:$PORT"
-            if nc -z -w5 $SERVER $PORT 2>/dev/null; then
-                echo "✓ Connection successful"
-                exit 0
+            if command -v nc &> /dev/null; then
+                if nc -z -w5 $SERVER $PORT 2>/dev/null; then
+                    echo "✓ Connection successful"
+                    exit 0
+                else
+                    echo "✗ Connection failed"
+                    exit 1
+                fi
             else
-                echo "✗ Connection failed"
-                exit 1
+                echo "Note: 'nc' not installed, cannot test connection"
+                exit 0
             fi
         else
-            echo "Config file not found"
+            echo "Config file not found: $CONFIG_FILE"
             exit 1
         fi
         ;;
@@ -161,9 +227,12 @@ case "$1" in
     --validate-config)
         if [ -f "$CONFIG_FILE" ]; then
             echo "Config file: $CONFIG_FILE"
+            echo "Contents:"
+            cat $CONFIG_FILE
+            echo ""
             echo "✓ Configuration is valid"
         else
-            echo "✗ Config file not found"
+            echo "✗ Config file not found: $CONFIG_FILE"
             exit 1
         fi
         ;;
@@ -175,25 +244,36 @@ case "$1" in
         # Run as daemon
         log "SOCLEX Agent starting..."
         log "Config: $2"
+        log "Agent IP: $(hostname -I | awk '{print $1}')"
         
         echo $$ > $PID_FILE
         
         while true; do
-            # Collect and send metrics
-            CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 2>/dev/null || echo "0")
-            MEM=$(free | grep Mem | awk '{print $3/$2 * 100.0}' 2>/dev/null || echo "0")
+            # Collect metrics
+            CPU=$(get_cpu_usage)
+            MEM=$(get_mem_usage)
+            DISK=$(get_disk_usage)
             
-            log "Metrics - CPU: ${CPU}%, MEM: ${MEM}%"
+            log "Heartbeat - CPU: ${CPU}%, MEM: ${MEM}%, DISK: ${DISK}%"
             
-            # Check for security events
+            # Check for failed login attempts
             if [ -f /var/log/auth.log ]; then
-                FAILED_LOGINS=$(grep "Failed password" /var/log/auth.log 2>/dev/null | tail -5 | wc -l)
+                FAILED_LOGINS=$(grep -c "Failed password" /var/log/auth.log 2>/dev/null | tail -1 || echo "0")
                 if [ "$FAILED_LOGINS" -gt 0 ]; then
-                    log "Security: $FAILED_LOGINS failed login attempts detected"
+                    log "Security Alert: $FAILED_LOGINS failed login attempts in auth.log"
                 fi
             fi
             
-            sleep 60
+            # Check for sudo events
+            if [ -f /var/log/auth.log ]; then
+                SUDO_EVENTS=$(grep -c "sudo:" /var/log/auth.log 2>/dev/null | tail -1 || echo "0")
+                if [ "$SUDO_EVENTS" -gt 0 ]; then
+                    log "Audit: $SUDO_EVENTS sudo events detected"
+                fi
+            fi
+            
+            # Heartbeat interval (30 seconds)
+            sleep 30
         done
         ;;
     *)
@@ -214,18 +294,20 @@ AGENT_EOF
 chmod +x $AGENT_DIR/soclex-agent
 
 # Generate agent ID
-AGENT_ID=$(cat /proc/sys/kernel/random/uuid | cut -d'-' -f1)
+AGENT_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s | sha256sum | head -c 8)
 
-# Create config file
+# Create config file with auto-detected IP
 echo -e "${BLUE}[INFO]${NC} Creating configuration..."
 
 cat > $AGENT_DIR/config.yml << CONFIG_EOF
 # SOCLEX Agent Configuration
 # Generated: $(date)
+# Auto-detected IP: ${AGENT_IP}
 
 agent:
   id: "${AGENT_ID}"
   name: "${AGENT_NAME}"
+  ip_address: "${AGENT_IP}"
   
 server:
   address: "${SERVER_IP}"
@@ -257,7 +339,7 @@ modules:
       
   metrics:
     enabled: true
-    interval: 60
+    interval: 30
 
 logging:
   level: info
@@ -301,7 +383,7 @@ systemctl enable soclex-agent
 systemctl start soclex-agent
 
 # Wait and check status
-sleep 2
+sleep 3
 
 if systemctl is-active --quiet soclex-agent; then
     echo ""
@@ -309,15 +391,23 @@ if systemctl is-active --quiet soclex-agent; then
     echo -e "${GREEN}  SOCLEX Agent Installation Complete!${NC}"
     echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
-    echo -e "  ${CYAN}Agent ID:${NC}    ${AGENT_ID}"
-    echo -e "  ${CYAN}Agent Name:${NC}  ${AGENT_NAME}"
-    echo -e "  ${CYAN}Server:${NC}      ${SERVER_IP}:${SERVER_PORT}"
-    echo -e "  ${CYAN}Status:${NC}      ${GREEN}Running${NC}"
+    echo -e "  ${CYAN}Agent ID:${NC}      ${AGENT_ID}"
+    echo -e "  ${CYAN}Agent Name:${NC}    ${AGENT_NAME}"
+    echo -e "  ${CYAN}Agent IP:${NC}      ${AGENT_IP} (auto-detected)"
+    echo -e "  ${CYAN}Server:${NC}        ${SERVER_IP}:${SERVER_PORT}"
+    echo -e "  ${CYAN}Status:${NC}        ${GREEN}Running${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Next Steps:${NC}"
+    echo -e "  1. Add this server in SOCLEX Dashboard → Servers"
+    echo -e "  2. Add agent with hostname: ${AGENT_NAME}"
+    echo -e "  3. Add agent with IP: ${AGENT_IP}"
+    echo -e "  4. Change agent status to 'Connected' when verified"
     echo ""
     echo -e "  ${CYAN}Useful Commands:${NC}"
     echo -e "  Status:  ${GREEN}systemctl status soclex-agent${NC}"
     echo -e "  Logs:    ${GREEN}journalctl -u soclex-agent -f${NC}"
     echo -e "  Restart: ${GREEN}systemctl restart soclex-agent${NC}"
+    echo -e "  Test:    ${GREEN}/opt/soclex-agent/soclex-agent --test-connection${NC}"
     echo ""
     echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
 else

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Save, Bell, Shield, Database, Key, Send } from 'lucide-react';
+import { Save, Bell, Shield, Database, Key, Send, Lock } from 'lucide-react';
 import TelegramSettings from '@/components/TelegramSettings';
+import ChangePassword from '@/components/ChangePassword';
 
 const Settings = () => {
   const { isAuthenticated, user } = useAuth();
@@ -57,6 +58,15 @@ const Settings = () => {
               />
             </div>
           </div>
+        </div>
+
+        {/* Change Password */}
+        <div className="cyber-card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Lock className="w-5 h-5 text-primary" />
+            <h3 className="font-display text-lg tracking-wider">Change Password</h3>
+          </div>
+          <ChangePassword />
         </div>
 
         {/* Telegram Settings */}

@@ -1,20 +1,113 @@
 # SOCLEX Deployment Guide
 
-Panduan lengkap untuk deploy SOCLEX dengan database lokal.
+<div align="center">
+
+```
+███████╗ ██████╗  ██████╗██╗     ███████╗██╗  ██╗
+██╔════╝██╔═══██╗██╔════╝██║     ██╔════╝╚██╗██╔╝
+███████╗██║   ██║██║     ██║     █████╗   ╚███╔╝ 
+╚════██║██║   ██║██║     ██║     ██╔══╝   ██╔██╗ 
+███████║╚██████╔╝╚██████╗███████╗███████╗██╔╝ ██╗
+╚══════╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝
+```
+
+**Production Deployment Guide**
+
+</div>
 
 ---
 
-## 📋 Prasyarat
+## 📋 Prerequisites
 
 ### System Requirements
-- Ubuntu 20.04+ / Debian 11+ / CentOS 8+
-- 4GB RAM minimum
-- 50GB storage
-- Node.js 18+ atau Bun
-- PostgreSQL 14+ (opsional, untuk production)
-- Nginx (untuk reverse proxy)
 
-### Install Dependencies
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| OS | Ubuntu 20.04 LTS | Ubuntu 24.04 LTS |
+| RAM | 2 GB | 4 GB |
+| CPU | 2 cores | 4 cores |
+| Storage | 20 GB | 50 GB |
+| Network | 100 Mbps | 1 Gbps |
+
+### Required Ports
+
+| Port | Service | Protocol |
+|------|---------|----------|
+| 7129 | SOCLEX Web UI | TCP |
+| 9200 | Agent Communication | TCP |
+| 443 | HTTPS (optional) | TCP |
+
+---
+
+## 🐳 Docker Deployment (Recommended)
+
+### Step 1: Install Docker
+
+**Ubuntu 24.04 LTS:**
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com | sudo sh
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Install Docker Compose
+sudo apt install docker-compose-plugin -y
+
+# Verify installation
+docker --version
+docker compose version
+```
+
+### Step 2: Clone Repository
+
+```bash
+cd /opt
+sudo git clone https://github.com/soclex/soclex.git
+cd soclex
+```
+
+### Step 3: Configure Environment
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit configuration
+nano .env
+```
+
+### Step 4: Start SOCLEX
+
+```bash
+# Build and start containers
+docker compose up -d
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f
+```
+
+### Step 5: Access Dashboard
+
+```
+http://YOUR_SERVER_IP:7129
+
+Username: adminlex
+Password: ahsYte$@612#231Hyad
+```
+
+---
+
+## 🔧 Manual Deployment
+
+### Step 1: Install Dependencies
 
 ```bash
 # Update system
@@ -24,148 +117,60 @@ sudo apt update && sudo apt upgrade -y
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# Atau gunakan Bun (lebih cepat)
-curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc
-
-# Install PostgreSQL (optional)
-sudo apt install -y postgresql postgresql-contrib
-
 # Install Nginx
 sudo apt install -y nginx
+
+# Verify
+node --version
+npm --version
+nginx -v
 ```
 
----
-
-## 🚀 Quick Deploy
-
-### Menggunakan Script Otomatis
+### Step 2: Clone and Build
 
 ```bash
-# Download dan jalankan installer
-curl -sL https://raw.githubusercontent.com/yourusername/soclex/main/scripts/soclex.sh -o soclex
-chmod +x soclex
+# Create directory
+sudo mkdir -p /opt/soclex
+cd /opt/soclex
 
-# Install SOCLEX
-sudo ./soclex --install
+# Clone repository
+sudo git clone https://github.com/soclex/soclex.git .
 
-# Atau untuk uninstall
-sudo ./soclex --uninstall
-```
-
----
-
-## 📝 Manual Deployment
-
-### Step 1: Clone Repository
-
-```bash
-cd /opt
-sudo git clone https://github.com/yourusername/soclex.git
-cd soclex
-```
-
-### Step 2: Install Dependencies
-
-```bash
-# Menggunakan npm
+# Install dependencies
 npm install
 
-# Atau menggunakan Bun
-bun install
-```
-
-### Step 3: Setup Environment
-
-```bash
-# Copy environment file
-cp .env.example .env
-
-# Edit konfigurasi
-nano .env
-```
-
-Contoh `.env`:
-```env
-# Server Configuration
-VITE_API_URL=http://localhost:3001
-VITE_APP_NAME=SOCLEX
-
-# Database (jika menggunakan backend)
-DATABASE_URL=postgresql://soclex:password@localhost:5432/soclex
-
-# Security
-JWT_SECRET=your-super-secret-key-change-this
-SESSION_SECRET=another-secret-key
-
-# Agent Configuration
-AGENT_PORT=9200
-AGENT_SSL=true
-```
-
-### Step 4: Setup Database (Optional)
-
-```bash
-# Login ke PostgreSQL
-sudo -u postgres psql
-
-# Create database dan user
-CREATE DATABASE soclex;
-CREATE USER soclex WITH ENCRYPTED PASSWORD 'your-secure-password';
-GRANT ALL PRIVILEGES ON DATABASE soclex TO soclex;
-\q
-```
-
-### Step 5: Build Application
-
-```bash
-# Build untuk production
+# Build for production
 npm run build
-
-# Atau dengan Bun
-bun run build
 ```
 
-### Step 6: Setup Nginx
+### Step 3: Configure Nginx
 
 ```bash
-# Buat konfigurasi Nginx
 sudo nano /etc/nginx/sites-available/soclex
 ```
 
-Isi dengan:
 ```nginx
 server {
-    listen 80;
-    server_name your-domain.com;
-    
+    listen 7129;
+    server_name _;
+
     root /opt/soclex/dist;
     index index.html;
-    
+
     # Gzip compression
     gzip on;
     gzip_types text/plain text/css application/json application/javascript;
-    
+
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
-    
+
     location / {
         try_files $uri $uri/ /index.html;
     }
-    
-    # API Proxy (jika ada backend)
-    location /api {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-    
-    # Static files caching
+
+    # Static file caching
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
@@ -173,173 +178,154 @@ server {
 }
 ```
 
-Aktifkan site:
+Enable site:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/soclex /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### Step 7: Setup SSL dengan Certbot
-
-```bash
-# Install Certbot
-sudo apt install -y certbot python3-certbot-nginx
-
-# Dapatkan certificate
-sudo certbot --nginx -d your-domain.com
-
-# Auto-renewal sudah disetup otomatis
-```
-
-### Step 8: Setup Systemd Service
-
-```bash
-sudo nano /etc/systemd/system/soclex.service
-```
-
-Isi dengan:
-```ini
-[Unit]
-Description=SOCLEX Security Operations Center
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/opt/soclex
-ExecStart=/usr/bin/node /opt/soclex/server.js
-Restart=on-failure
-RestartSec=10
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=soclex
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Aktifkan service:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable soclex
-sudo systemctl start soclex
-sudo systemctl status soclex
+sudo systemctl restart nginx
+sudo systemctl enable nginx
 ```
 
 ---
 
-## 🔧 Konfigurasi Database Lokal
+## 🔒 Security Hardening
 
-### SQLite (Simple Setup)
-
-Untuk deployment sederhana, Anda bisa menggunakan SQLite:
+### Firewall Configuration
 
 ```bash
-# Install better-sqlite3
-npm install better-sqlite3
-
-# Database akan otomatis dibuat di /opt/soclex/data/soclex.db
-```
-
-### PostgreSQL (Production)
-
-Untuk production, gunakan PostgreSQL:
-
-```bash
-# Inisialisasi schema
-psql -U soclex -d soclex -f /opt/soclex/sql/schema.sql
-
-# Import data awal
-psql -U soclex -d soclex -f /opt/soclex/sql/seed.sql
-```
-
----
-
-## 🛡️ Security Hardening
-
-### Firewall Setup
-
-```bash
-# Allow only necessary ports
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 9200/tcp  # Agent port
+# Enable UFW
 sudo ufw enable
+
+# Allow required ports
+sudo ufw allow ssh
+sudo ufw allow 7129/tcp    # SOCLEX Web
+sudo ufw allow 9200/tcp    # Agent communication
+
+# Verify
+sudo ufw status
 ```
 
-### Fail2ban
+### Fail2ban Setup
 
 ```bash
+# Install
 sudo apt install -y fail2ban
 
-# Create SOCLEX filter
-sudo nano /etc/fail2ban/filter.d/soclex.conf
+# Configure
+sudo nano /etc/fail2ban/jail.local
+```
+
+```ini
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+port = ssh
+logpath = /var/log/auth.log
+
+[soclex]
+enabled = true
+port = 7129
+filter = soclex
+logpath = /var/log/nginx/access.log
+maxretry = 10
+```
+
+Start Fail2ban:
+
+```bash
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
 ```
 
 ---
 
-## 🔄 Update SOCLEX
+## 🔄 Updates
+
+### Docker Update
+
+```bash
+cd /opt/soclex
+docker compose down
+git pull origin main
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Manual Update
 
 ```bash
 cd /opt/soclex
 git pull origin main
 npm install
 npm run build
-sudo systemctl restart soclex
+sudo systemctl restart nginx
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## 📊 Monitoring
 
-### Check Logs
+### Check Service Status
 
 ```bash
-# Application logs
-sudo journalctl -u soclex -f
+# Docker
+docker compose ps
+docker compose logs -f soclex
 
-# Nginx logs
-sudo tail -f /var/log/nginx/error.log
-
-# PostgreSQL logs
-sudo tail -f /var/log/postgresql/postgresql-14-main.log
+# Manual
+sudo systemctl status nginx
+sudo journalctl -u nginx -f
 ```
 
-### Common Issues
+### Health Check
 
-1. **Port already in use**
-   ```bash
-   sudo lsof -i :80
-   sudo kill -9 <PID>
-   ```
+```bash
+# Check if SOCLEX is responding
+curl -s http://localhost:7129/health
 
-2. **Permission denied**
-   ```bash
-   sudo chown -R www-data:www-data /opt/soclex
-   ```
+# Check port
+sudo netstat -tlnp | grep 7129
+```
 
-3. **Database connection failed**
-   ```bash
-   sudo systemctl status postgresql
-   sudo -u postgres psql -c "\l"
-   ```
+---
+
+## 🗑️ Uninstall
+
+### Docker Uninstall
+
+```bash
+cd /opt/soclex
+docker compose down -v
+sudo rm -rf /opt/soclex
+```
+
+### Manual Uninstall
+
+```bash
+sudo rm -rf /opt/soclex
+sudo rm -f /etc/nginx/sites-enabled/soclex
+sudo rm -f /etc/nginx/sites-available/soclex
+sudo systemctl restart nginx
+```
 
 ---
 
 ## 📞 Support
 
-Jika mengalami masalah, silakan:
-1. Buka issue di GitHub
-2. Join Discord community
-3. Email: support@soclex.io
+- Documentation: [docs/](docs/)
+- Issues: [GitHub Issues](https://github.com/soclex/soclex/issues)
+- Email: support@soclex.io
 
 ---
 
-<p align="center">
-  <strong>SOCLEX</strong> - Deploy with Confidence
-</p>
+<div align="center">
+
+**SOCLEX** - Deploy with Confidence
+
+</div>

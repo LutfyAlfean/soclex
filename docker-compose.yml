@@ -1,0 +1,42 @@
+# ============================================
+# SOCLEX - Docker Compose Configuration
+# Target: Ubuntu Server 24.04 LTS
+# Port: 7129
+# ============================================
+
+services:
+  soclex:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: soclex-app
+    restart: unless-stopped
+    ports:
+      - "7129:7129"
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Jakarta
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7129/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - soclex-network
+    labels:
+      - "com.soclex.description=SOCLEX Security Operations Center"
+      - "com.soclex.version=1.0.0"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+networks:
+  soclex-network:
+    driver: bridge
+    name: soclex-network
